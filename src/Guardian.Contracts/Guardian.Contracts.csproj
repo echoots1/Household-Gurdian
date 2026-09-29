@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Guardian.Contracts</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../../docs/notice-text.md" LogicalName="Guardian.Contracts.notice-text.md" />
+  </ItemGroup>
+</Project>

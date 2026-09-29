@@ -1,0 +1,30 @@
+@page
+@model SitesModel
+@{ ViewData["Title"] = "Sites"; }
+<h1>Sites</h1>
+<form method="get" class="card row wrap filters">
+  <label>From <input type="date" name="from" value="@Model.From"></label>
+  <label>To <input type="date" name="to" value="@Model.To"></label>
+  <button class="btn">Show</button>
+  <span class="muted small">Tip: "This week" = <a href="/sites?from=@Model.WeekStart&to=@Model.To">@Model.WeekStart → @Model.To</a></span>
+</form>
+<section class="card">
+  <table class="wide">
+    <tr><th>Domain</th><th>Active time</th><th>Category</th><th>First seen</th><th>Flag</th><th></th></tr>
+    @foreach (var s in Model.Rows)
+    {
+      <tr>
+        <td><b>@s.Name</b></td>
+        <td class="num">@Queries.Hm(s.Seconds)</td>
+        <td><span class="pill @s.Category.ToLowerInvariant()">@s.Category</span></td>
+        <td class="nowrap">@(s.FirstSeen?.ToString("MMM d") ?? "—")</td>
+        <td>@(s.Override == "allow" ? "allowed" : s.Override == "flag" ? "always flag" : s.Lists.Count > 0 ? "⚠ " + string.Join(", ", s.Lists) : "—")</td>
+        <td class="nowrap">
+          <select class="reclass" data-kind="web" data-name="@s.Name"><option value="">Reclassify…</option>@foreach (var c in Categories.All) { <option value="@c">@c</option> }</select>
+          <button class="link" data-override="allow" data-domain="@s.Name">allow</button> <button class="link" data-override="flag" data-domain="@s.Name">always flag</button> <button class="link" data-override="" data-domain="@s.Name">clear</button>
+        </td>
+      </tr>
+    }
+  </table>
+  @if (Model.Rows.Count == 0) { <p class="muted">No sites in this range.</p> }
+</section>

@@ -1,0 +1,64 @@
+@model TodayView
+@{
+    var t = Model.Totals;
+    var total = Math.Max(1, t.AllSeconds);
+    string W(int s) => (100.0 * s / total).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "%";
+}
+<section class="card">
+  <div class="row between">
+    <h2>@DateOnly.Parse(Model.Date).ToString("dddd, MMM d")</h2>
+    <div class="state @Model.Status.State.ToString().ToLowerInvariant()">@StateText(Model)</div>
+  </div>
+  <div class="hbar">
+    <div class="seg school" style="width:@W(t.Seconds(Categories.School))" title="School @Queries.Hm(t.Seconds(Categories.School))"></div>
+    <div class="seg gaming" style="width:@W(t.Seconds(Categories.Gaming))" title="Gaming @Queries.Hm(t.Seconds(Categories.Gaming))"></div>
+    <div class="seg other" style="width:@W(t.Seconds(Categories.Other))" title="Other @Queries.Hm(t.Seconds(Categories.Other))"></div>
+  </div>
+  <div class="legend">
+    <span class="sw school"></span> School @Queries.Hm(t.Seconds(Categories.School))
+    <span class="sw gaming"></span> Gaming @Queries.Hm(t.Seconds(Categories.Gaming))
+    <span class="sw other"></span> Other @Queries.Hm(t.Seconds(Categories.Other))
+  </div>
+  <div class="meters">
+  @foreach (var m in Model.Meters)
+  {
+    <div class="meter">
+      <div class="row between"><span>@m.Label</span><span class="muted">@(m.LimitMinutes is null ? Queries.Hm(m.UsedSeconds) + " · no limit" : $"{Queries.Hm(m.UsedSeconds)} of {Queries.Hm(m.LimitMinutes.Value * 60)} · {Queries.Hm(m.RemainingSeconds ?? 0)} left")</span></div>
+      @if (m.LimitMinutes is not null) { <div class="track"><div class="fill @(m.Percent >= 100 ? "full" : m.Percent >= 90 ? "warn" : "")" style="width:@m.Percent%"></div></div> }
+    </div>
+  }
+  </div>
+  <p class="muted small">
+    @if (Model.CurrentName is not null) { <span>Now: <b>@Model.CurrentName</b> (@Model.CurrentCategory)</span> } else { <span>Idle or signed out.</span> }
+    @if (Model.BedtimeTonight is not null) { <span> · Bedtime tonight @Model.BedtimeTonight</span> } else { <span> · No bedtime tonight</span> }
+    @if (Model.PausedUntil is not null) { <span> · Limits paused until @Model.PausedUntil.Value.ToString("h:mm tt")</span> }
+  </p>
+</section>
+<div class="grid2">
+  <section class="card"><h3>Top apps</h3>
+    @if (Model.TopApps.Count == 0) { <p class="muted">Nothing yet.</p> }
+    <table>@foreach (var i in Model.TopApps) { <tr><td>@i.Name</td><td><span class="pill @i.Category.ToLowerInvariant()">@i.Category</span></td><td class="num">@Queries.Hm(i.Seconds)</td></tr> }</table>
+  </section>
+  <section class="card"><h3>Top sites</h3>
+    @if (Model.TopSites.Count == 0) { <p class="muted">Nothing yet.</p> }
+    <table>@foreach (var i in Model.TopSites) { <tr><td>@i.Name</td><td><span class="pill @i.Category.ToLowerInvariant()">@i.Category</span></td><td class="num">@Queries.Hm(i.Seconds)</td></tr> }</table>
+  </section>
+</div>
+@if (Model.Exceptions.Count > 0 || Model.Events.Count > 0)
+{
+<section class="card"><h3>Today's changes and events</h3>
+  <ul class="timeline">
+  @foreach (var e in Model.Exceptions) { <li><span class="muted">@e.CreatedAt.ToString("h:mm tt")</span> @(e.Note ?? "Exception added")</li> }
+  @foreach (var e in Model.Events) { <li><span class="muted">@e.At.ToString("h:mm:ss tt")</span> @EnforcementReason.Describe(e.Reason): @e.Step.Replace('_', ' ') <span class="muted">(policy v@(e.PolicyVersion))</span></li> }
+  </ul>
+</section>
+}
+@functions {
+    static string StateText(TodayView m) => m.Status.State switch
+    {
+        TrayState.WaitingForNotice => "Waiting for notice acknowledgment",
+        TrayState.Enforcing => "Enforcing: " + EnforcementReason.Describe(m.Status.EnforcingReason ?? "") + (m.Status.LiftsAt is { } l ? " · lifts " + l.ToString("h:mm tt") : ""),
+        TrayState.Warning => "Warning: " + m.Status.Tooltip,
+        _ => m.SessionActive ? "On · session active" : "On · no session",
+    };
+}

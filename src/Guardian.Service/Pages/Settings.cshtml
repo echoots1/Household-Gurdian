@@ -1,0 +1,73 @@
+@page
+@model SettingsModel
+@{ ViewData["Title"] = "Settings"; var s = Model.Values; }
+<h1>Settings</h1>
+<div class="grid2">
+<section class="card"><h3>Monitored account</h3>
+  <p><b>@(s.GetValueOrDefault(SettingKeys.MonitoredUser) ?? "(not set)")</b> @if (s.GetValueOrDefault(SettingKeys.MonitoredUserIsAdmin) == "1") { <span class="pill other">administrator</span> }</p>
+  @if (s.GetValueOrDefault(SettingKeys.MonitoredUserIsAdmin) == "1") { <p class="notice small">This account is an administrator: the child could stop or remove Guardian. A standard account is the real control.</p> }
+  <p>Notice accepted: <b>@(Model.NoticeAcceptedAt?.ToString("MMM d, yyyy h:mm tt") ?? "not yet")</b></p>
+  <p class="muted small">Installed version @Model.Version. Data folder: <code>@Model.DataDir</code>. To change the monitored account, run the installer again.</p>
+</section>
+<section class="card"><h3>Dashboard access</h3>
+  <p>LAN: <code>https://@Model.Host:@Ports.Web/</code> @foreach (var ip in Model.LanAddresses) { <span class="muted small">· https://@ip:@Ports.Web/</span> }</p>
+  <p>Certificate fingerprint (SHA-1): <code class="small">@Model.Fingerprint</code></p>
+  <p><a class="btn" href="/api/v1/cert">Download certificate</a> <span class="muted small">Trust it once on each device you use the dashboard from.</span></p>
+  <form id="password-form" onsubmit="return false" class="row wrap"><label>Current <input type="password" name="current" autocomplete="current-password"></label><label>New (12+) <input type="password" name="next" autocomplete="new-password"></label><button class="btn" id="change-password">Change password</button></form>
+</section>
+</div>
+<form id="settings-form" onsubmit="return false">
+<div class="grid2">
+<section class="card"><h3>Email alerts (SMTP)</h3>
+  <p class="muted small">Alerts are sent as one digest every 5 minutes. Leave the host blank to disable.</p>
+  <label>Host <input name="@SettingKeys.SmtpHost" value="@s.GetValueOrDefault(SettingKeys.SmtpHost)"></label>
+  <label>Port <input name="@SettingKeys.SmtpPort" type="number" value="@(s.GetValueOrDefault(SettingKeys.SmtpPort) ?? "587")"></label>
+  <label>User <input name="@SettingKeys.SmtpUser" value="@s.GetValueOrDefault(SettingKeys.SmtpUser)"></label>
+  <label>Password <input name="@SettingKeys.SmtpPassword" type="password" placeholder="@s.GetValueOrDefault(SettingKeys.SmtpPassword)" autocomplete="off"></label>
+  <label>From <input name="@SettingKeys.SmtpFrom" value="@s.GetValueOrDefault(SettingKeys.SmtpFrom)"></label>
+  <label>To <input name="@SettingKeys.SmtpTo" value="@s.GetValueOrDefault(SettingKeys.SmtpTo)"></label>
+  <label><input type="checkbox" name="@SettingKeys.SmtpUseTls" value="1" checked="@(s.GetValueOrDefault(SettingKeys.SmtpUseTls) != "0")"> Use STARTTLS</label>
+  <button class="btn" id="test-email">Send test email</button>
+</section>
+<section class="card"><h3>Nightly backup</h3>
+  <p class="muted small">At 03:00 a dated copy is written to <code>@Model.DataDir\backup\</code> (7 kept) and, if set, to this share.</p>
+  <label>UNC path <input name="@SettingKeys.BackupPath" value="@s.GetValueOrDefault(SettingKeys.BackupPath)" placeholder="\\tank\guardian"></label>
+  <label>Share user <input name="@SettingKeys.BackupUser" value="@s.GetValueOrDefault(SettingKeys.BackupUser)"></label>
+  <label>Share password <input name="@SettingKeys.BackupPassword" type="password" placeholder="@s.GetValueOrDefault(SettingKeys.BackupPassword)" autocomplete="off"></label>
+  <button class="btn" id="backup-now">Back up now</button>
+</section>
+<section class="card"><h3>Retention (days)</h3>
+  <label>Raw activity events <input type="number" min="1" name="@SettingKeys.RetentionRawDays" value="@(s.GetValueOrDefault(SettingKeys.RetentionRawDays) ?? "90")"></label>
+  <label>Top apps/sites per day <input type="number" min="1" name="@SettingKeys.RetentionItemDays" value="@(s.GetValueOrDefault(SettingKeys.RetentionItemDays) ?? "365")"></label>
+  <label>Alerts and enforcement events <input type="number" min="1" name="@SettingKeys.RetentionAlertDays" value="@(s.GetValueOrDefault(SettingKeys.RetentionAlertDays) ?? "365")"></label>
+  <p class="muted small">Daily totals are kept forever. These windows are shown to the child on their "What's collected" page.</p>
+</section>
+<section class="card"><h3>Privacy</h3>
+  <p class="muted small">Window titles can leak content (a document name, a video title). Choose which categories record them.</p>
+  @{ var tc = (s.GetValueOrDefault(SettingKeys.TitleCategories) ?? "Gaming,Other").Split(',', StringSplitOptions.TrimEntries); }
+  @foreach (var c in Categories.All) { <label><input type="checkbox" name="title_@c" checked="@tc.Contains(c)"> Record window titles for @c</label> }
+</section>
+</div>
+<p><button class="btn primary" id="save-settings">Save settings</button></p>
+</form>
+<div class="grid2">
+<section class="card"><h3>Category rules</h3>
+  <p class="muted small">First match by priority wins; unmatched goes to Other. Saving rebuilds all history with the new rules.</p>
+  <table class="wide" id="rules"><tr><th>#</th><th>Match</th><th>Pattern</th><th>Category</th><th></th></tr>
+  @foreach (var r in Model.Rules) { <tr class="rule-row"><td><input type="number" name="r_pri" value="@r.Priority" class="tiny"></td><td><select name="r_type"><option value="Process" selected="@(r.MatchType == RuleMatch.Process)">process</option><option value="Domain" selected="@(r.MatchType == RuleMatch.Domain)">domain</option><option value="TitleContains" selected="@(r.MatchType == RuleMatch.TitleContains)">title contains</option></select></td><td><input name="r_pat" value="@r.Pattern"></td><td><select name="r_cat">@foreach (var c in Categories.All) { <option selected="@(c == r.Category)">@c</option> }</select></td><td><button class="link" onclick="this.closest('tr').remove()">remove</button></td></tr> }
+  <tr class="rule-row template" hidden><td><input type="number" name="r_pri" value="50" class="tiny"></td><td><select name="r_type"><option value="Process">process</option><option value="Domain">domain</option><option value="TitleContains">title contains</option></select></td><td><input name="r_pat"></td><td><select name="r_cat">@foreach (var c in Categories.All) { <option>@c</option> }</select></td><td><button class="link" onclick="this.closest('tr').remove()">remove</button></td></tr>
+  </table>
+  <button class="btn" id="add-rule">+ Add rule</button> <button class="btn primary" id="save-rules">Save rules</button>
+</section>
+<section class="card"><h3>Content lists</h3>
+  <p class="muted small">Flags are informational; nothing is blocked. Lists: @string.Join(", ", Model.ListCounts.Select(kv => $"{kv.Key} ({kv.Value})")). Last refreshed: @(Model.ListsRefreshedAt?.ToString("MMM d, yyyy") ?? "never").</p>
+  <p><button class="btn" id="refresh-lists">Refresh lists from sources</button> <span class="muted small">This is the only time Guardian downloads anything.</span></p>
+  <h4>Your custom list</h4>
+  <form class="row wrap" onsubmit="return false"><input id="custom-domain" placeholder="example.com"><button class="btn" id="add-custom">Add</button></form>
+  <ul class="compact">@foreach (var d in Model.Custom) { <li>@d <button class="link" data-custom-remove="@d">remove</button></li> }</ul>
+  <h4>Overrides</h4>
+  <ul class="compact">@foreach (var (d, m) in Model.Overrides) { <li>@d — @(m == "allow" ? "allowed" : "always flag") <button class="link" data-override="" data-domain="@d">clear</button></li> }</ul>
+  <h4>Export</h4>
+  <p><a class="btn" href="/api/v1/export">Download all data (zip of CSVs)</a></p>
+</section>
+</div>

@@ -1,0 +1,32 @@
+@page
+@model WeekModel
+@{ ViewData["Title"] = "Week"; var v = Model.View; }
+<div class="row between wrap">
+  <h1>Week of @v.Start.ToString("MMM d")</h1>
+  <div><a class="btn" href="/week?start=@v.Start.AddDays(-7)">← Previous</a> <a class="btn" href="/week?start=@v.Start.AddDays(7)">Next →</a></div>
+</div>
+<section class="card">
+  <partial name="_Bars" model="v.Days.Select(d => d.Totals).ToList()" />
+</section>
+<section class="card">
+  <table class="wide">
+    <tr><th>Day</th><th>School</th><th>Gaming</th><th>Other</th><th>Counted vs limit</th><th>Bedtime</th></tr>
+    @foreach (var d in v.Days)
+    {
+      <tr>
+        <td><a href="/?date=@d.Date">@d.Day.ToString()[..3] @DateOnly.Parse(d.Date).ToString("M/d")</a></td>
+        <td class="num">@Queries.Hm(d.Totals.Seconds(Categories.School))</td>
+        <td class="num">@Queries.Hm(d.Totals.Seconds(Categories.Gaming))</td>
+        <td class="num">@Queries.Hm(d.Totals.Seconds(Categories.Other))</td>
+        <td class="num @(d.TotalLimit is { } l && d.Totals.CountedSeconds > l * 60 ? "over" : "")">@Queries.Hm(d.Totals.CountedSeconds)@(d.TotalLimit is { } lim ? " / " + Queries.Hm(lim * 60) : "")</td>
+        <td>@(d.BedtimeSignOut ? (d.LateLogin ? "Signed out, logged in again later" : "Signed out at bedtime") : "—")</td>
+      </tr>
+    }
+  </table>
+</section>
+@if (v.Exceptions.Count > 0)
+{
+<section class="card"><h3>Exceptions this week</h3>
+  <ul>@foreach (var e in v.Exceptions) { <li><b>@e.Date</b> — @(e.Note ?? "exception")</li> }</ul>
+</section>
+}

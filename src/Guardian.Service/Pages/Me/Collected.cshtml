@@ -1,0 +1,20 @@
+@page "/me/collected"
+@model Guardian.Service.Pages.Me.CollectedModel
+@{ ViewData["Title"] = "What's collected"; }
+<section class="card notice-text">
+  @Html.Raw(Model.NoticeHtml)
+</section>
+<section class="card">
+  <h3>Exactly what is recorded</h3>
+  <table class="wide">
+    <tr><th>Field</th><th>Example</th><th>Kept for</th></tr>
+    <tr><td>App name</td><td>steam, winword</td><td>@Model.RawDays days as events; daily totals forever</td></tr>
+    <tr><td>Website domain</td><td>youtube.com</td><td>@Model.RawDays days as events; top sites per day for @Model.ItemDays days</td></tr>
+    <tr><td>Page / window title</td><td>"Cats - YouTube"</td><td>@Model.RawDays days · only for: @string.Join(", ", Model.TitleCategories)</td></tr>
+    <tr><td>Time and duration</td><td>4:12 PM, 8 minutes</td><td>@Model.RawDays days</td></tr>
+    <tr><td>Idle / locked</td><td>yes / no</td><td>@Model.RawDays days</td></tr>
+    <tr><td>Warnings and sign-outs</td><td>"Bedtime: signed out 9:00 PM"</td><td>@Model.AlertDays days</td></tr>
+  </table>
+  <p class="muted small">Never: keystrokes, screenshots, camera, microphone, messages, files, or full web addresses.</p>
+  <p>Notice accepted: <b>@(Model.AcceptedAt?.ToString("MMMM d, yyyy h:mm tt") ?? "not yet")</b></p>
+</section>

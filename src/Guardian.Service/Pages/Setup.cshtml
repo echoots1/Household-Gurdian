@@ -1,0 +1,42 @@
+@page
+@model SetupModel
+@{ ViewData["Title"] = "Setup"; }
+<section class="card">
+  <h1>🛡 Set up Guardian</h1>
+  @if (Model.Done)
+  {
+    <div class="notice">Setup is complete.</div>
+    <p>Dashboard on your own devices: <code>https://@Model.Host:@Ports.Web/</code> @foreach (var ip in Model.LanAddresses) { <span class="small muted">· https://@ip:@Ports.Web/</span> }</p>
+    <p>Certificate fingerprint (SHA-1): <code class="small">@Model.Fingerprint</code> — <a href="/api/v1/cert">download it</a> and trust it once per device.</p>
+    <p>Next: sign in as <b>@Model.MonitoredUser</b> once. The notice screen appears; the child presses "I understand". Enforcement starts then.</p>
+    <p><a class="btn primary" href="/">Open the dashboard</a></p>
+  }
+  else
+  {
+    <p class="muted">Runs once, on this PC, in an administrator session. Nothing needs to reach another machine.</p>
+    @if (Model.Error is not null) { <div class="notice warn">@Model.Error</div> }
+    <form method="post">
+      <input type="hidden" name="__RequestVerificationToken" value="@Xsrf.GetAndStoreTokens(ViewContext.HttpContext).RequestToken">
+      <h3>1. Which account is monitored?</h3>
+      @if (Model.Users.Count > 0)
+      {
+        @foreach (var (name, admin) in Model.Users) { <label class="block"><input type="radio" name="user" value="@name" required> @name @if (admin) { <span class="pill other">administrator</span> }</label> }
+        <label class="block">Other: <input name="userOther" placeholder="account name"></label>
+      }
+      else { <label class="block">Account name <input name="userOther" required></label> }
+      <p class="muted small">Only this account is recorded and enforced. If it is an administrator, the child could stop or remove Guardian; a standard account is the real control.</p>
+      <h3>2. Parent password</h3>
+      <label class="block">Password (12+ characters) <input type="password" name="password" minlength="12" required autocomplete="new-password"></label>
+      <label class="block">Again <input type="password" name="password2" minlength="12" required autocomplete="new-password"></label>
+      <h3>3. Optional</h3>
+      <div class="grid2">
+        <label class="block">SMTP host <input name="smtpHost"></label><label class="block">SMTP port <input name="smtpPort" type="number" value="587"></label>
+        <label class="block">SMTP user <input name="smtpUser"></label><label class="block">SMTP password <input name="smtpPassword" type="password" autocomplete="off"></label>
+        <label class="block">From <input name="smtpFrom"></label><label class="block">To <input name="smtpTo"></label>
+        <label class="block">Backup share (UNC) <input name="backupPath" placeholder="\\tank\guardian"></label><label class="block">Share user <input name="backupUser"></label>
+        <label class="block">Share password <input name="backupPassword" type="password" autocomplete="off"></label>
+      </div>
+      <p><button class="btn primary">Finish setup</button></p>
+    </form>
+  }
+</section>

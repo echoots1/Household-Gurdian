@@ -1,0 +1,13 @@
+@page
+@model LoginModel
+@{ ViewData["Title"] = "Log in"; Layout = "_Layout"; }
+<section class="card login">
+  <h1>🛡 Guardian</h1>
+  <p class="muted">Parent dashboard. One password, set during setup on the child's PC.</p>
+  @if (Model.Error is not null) { <div class="notice warn">@Model.Error</div> }
+  <form method="post" action="/auth/login">
+    <input type="hidden" name="returnUrl" value="@Model.ReturnUrl">
+    <label>Password <input type="password" name="password" autofocus autocomplete="current-password" required></label>
+    <button class="btn primary">Log in</button>
+  </form>
+</section>

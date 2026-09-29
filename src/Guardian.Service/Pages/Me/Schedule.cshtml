@@ -1,0 +1,20 @@
+@page "/me/schedule"
+@model Guardian.Service.Pages.Me.ScheduleModel
+@{ ViewData["Title"] = "Schedule"; var v = Model.View; }
+<h1>This week</h1>
+<section class="card">
+  <table class="wide"><tr><th>Night</th><th>Bedtime</th><th>Changes</th></tr>
+  @foreach (var d in v.Days) { <tr><td>@d.Day @DateOnly.Parse(d.Date).ToString("M/d")</td><td>@(d.Bedtime ?? "no bedtime")</td><td>@foreach (var e in d.Exceptions) { <div>@(e.Note ?? "exception") <span class="muted small">added @e.CreatedAt.ToString("MMM d h:mm tt")</span></div> }</td></tr> }
+  </table>
+</section>
+<div class="grid2">
+<section class="card"><h3>Daily limits</h3>
+  <ul>@foreach (var (k, m) in v.Limits) { <li>@(k == "total" ? "Total (School doesn't count)" : k): @Queries.Hm(m * 60)</li> }</ul>
+  @if (v.Limits.Count == 0) { <p class="muted">No daily limits.</p> }
+</section>
+<section class="card"><h3>Allowed hours</h3>
+  @if (v.Hours.Count == 0) { <p class="muted">Every category is allowed at any hour.</p> }
+  <ul>@foreach (var (cat, rules) in v.Hours) { foreach (var r in rules) { <li>@cat: @(r.Days.Count == 0 ? "every day" : string.Join(", ", r.Days)) @Queries.Fmt(TimeOnly.Parse(r.Start)) – @Queries.Fmt(TimeOnly.Parse(r.End))</li> } }</ul>
+</section>
+</div>
+<p class="muted small">Policy version @v.Version. Warnings come 5 minutes and 1 minute before anything happens.</p>

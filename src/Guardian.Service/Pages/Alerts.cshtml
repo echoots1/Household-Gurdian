@@ -1,0 +1,22 @@
+@page
+@model AlertsModel
+@{ ViewData["Title"] = "Alerts"; }
+<div class="row between wrap"><h1>Alerts</h1>
+  <div><a class="btn" href="/alerts?all=1">Show all</a> <button class="btn" id="ack-all">Acknowledge all</button></div></div>
+<section class="card">
+  @if (Model.Rows.Count == 0) { <p class="muted">No @(Model.All ? "" : "unread ")alerts.</p> }
+  <table class="wide">
+  @foreach (var a in Model.Rows)
+  {
+    <tr class="@(a.AcknowledgedAt is null ? "unread" : "")">
+      <td class="nowrap">@a.CreatedAt.ToString("MMM d h:mm tt")</td>
+      <td>@AlertsModel.Icon(a.Type) @AlertsModel.Describe(a)</td>
+      <td class="nowrap">
+        @if (a.Type == AlertType.ContentFlag && a.Str("domain") is { } d) { <button class="link" data-override="allow" data-domain="@d">allow domain</button> <a class="link" href="/activity?q=@Uri.EscapeDataString(d)&from=@a.CreatedAt.AddDays(-7).ToString("yyyy-MM-dd")&to=@a.CreatedAt.ToString("yyyy-MM-dd")">open in Activity</a> }
+        @if (a.Type == AlertType.TimeRequest) { <button class="btn small" data-action="add-minutes" data-prompt="Minutes to add today" data-default="30">+ Add minutes</button> }
+        @if (a.AcknowledgedAt is null) { <button class="link" data-ack="@a.Id">acknowledge</button> } else { <span class="muted small">acknowledged @a.AcknowledgedAt.Value.ToString("MMM d h:mm tt")</span> }
+      </td>
+    </tr>
+  }
+  </table>
+</section>

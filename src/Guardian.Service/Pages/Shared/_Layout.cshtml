@@ -1,0 +1,41 @@
+@inject AlertRepo Alerts
+@{
+    var unread = User.Identity?.IsAuthenticated == true ? Alerts.UnreadCount() : 0;
+    var page = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+    string Active(string p) => page.Equals(p, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    var token = Xsrf.GetAndStoreTokens(ViewContext.HttpContext).RequestToken;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf" content="@token">
+  <title>@(ViewData["Title"] is string t ? t + " · Guardian" : "Guardian")</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/htmx.min.js" defer></script>
+  <script src="/js/app.js" defer></script>
+</head>
+<body>
+@if (User.Identity?.IsAuthenticated == true)
+{
+<header class="top">
+  <a class="brand" href="/">🛡 Guardian</a>
+  <nav>
+    <a class="@Active("/Index")" href="/">Today</a>
+    <a class="@Active("/Week")" href="/week">Week</a>
+    <a class="@Active("/Activity")" href="/activity">Activity</a>
+    <a class="@Active("/Sites")" href="/sites">Sites</a>
+    <a class="@Active("/Alerts")" href="/alerts">Alerts @if (unread > 0) {<span class="badge">@unread</span>}</a>
+    <a class="@Active("/Policy")" href="/policy">Policy</a>
+    <a class="@Active("/Settings")" href="/settings">Settings</a>
+  </nav>
+  <form method="post" action="/auth/logout" class="logout"><input type="hidden" name="__RequestVerificationToken" value="@token"><button class="link">Log out</button></form>
+</header>
+}
+<main class="@(User.Identity?.IsAuthenticated == true ? "" : "narrow")">
+  @RenderBody()
+</main>
+<div id="toast" class="toast" hidden></div>
+</body>
+</html>
