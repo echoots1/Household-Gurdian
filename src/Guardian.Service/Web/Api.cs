@@ -6,6 +6,7 @@ using Guardian.Core.Rollups;
 using Guardian.Core.Storage;
 using Guardian.Core.Time;
 using Guardian.Service.Infrastructure;
+using Guardian.Service.Win32;
 using Guardian.Service.Workers;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
@@ -177,6 +178,18 @@ public static class Api
             if (PasswordHasher.Validate(c.Next) is { } err) return Results.BadRequest(new { error = err });
             s.Set(SettingKeys.ParentPasswordHash, PasswordHasher.Hash(c.Next));
             return Results.Ok();
+        });
+        mut.MapPost("/settings/monitored-user", (DomainOverrideRequest r, SettingsRepo s, ISessionControl sc, EnforcementRepo ev, SchedulerWorker sched, IClock c) =>
+        {
+            // Changing the account restarts the trust step: the new account must accept the notice before anything is recorded.
+            var name = r.Domain.Trim();
+            if (name.Length == 0) return Results.BadRequest(new { error = "Account name is required." });
+            s.Set(SettingKeys.MonitoredUser, name);
+            s.Set(SettingKeys.MonitoredUserIsAdmin, sc.IsAdministrator(name) ? "1" : "0");
+            s.Set(SettingKeys.NoticeAcceptedAt, null);
+            ev.AddSession(c.Now, "monitored_user_changed", name);
+            sched.RunOnce();
+            return Results.Ok(new { monitoredUser = name });
         });
         mut.MapPost("/lists/refresh", async (ListRefresh refresh, CancellationToken ct) => Results.Json(await refresh.RefreshAsync(ct)));
         api.MapGet("/lists", (ListRepo l) => Results.Json(new { counts = l.Counts(), custom = l.Domains("custom"), overrides = l.Overrides() }));

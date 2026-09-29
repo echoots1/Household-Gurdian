@@ -54,6 +54,7 @@
   document.getElementById('change-password')?.addEventListener('click', async () => {
     const f = document.getElementById('password-form'); try { await call('POST', '/api/v1/settings/password', { current: f.current.value, next: f.next.value }); toast('Password changed'); f.reset(); } catch (e) { toast(e.message, 4000); }
   });
+  document.getElementById('change-user')?.addEventListener('click', async () => { const u = document.getElementById('monitored-user').value.trim(); if (!u || !confirm(`Monitor the account "${u}" from now on? The notice must be accepted again.`)) return; try { await call('POST', '/api/v1/settings/monitored-user', { domain: u }); reload(); } catch (e) { toast(e.message, 5000); } });
   document.getElementById('test-email')?.addEventListener('click', async () => { toast('Sending…'); try { await call('POST', '/api/v1/email/test'); toast('Test email sent'); } catch (e) { toast('Email failed: ' + e.message, 6000); } });
   document.getElementById('backup-now')?.addEventListener('click', async () => { toast('Backing up…'); try { const r = await call('POST', '/api/v1/backup/now'); toast(r.error ? 'Local copy written; share failed: ' + r.error : 'Backup written', 5000); } catch (e) { toast(e.message, 5000); } });
   document.getElementById('refresh-lists')?.addEventListener('click', async () => { toast('Downloading lists…', 10000); try { const r = await call('POST', '/api/v1/lists/refresh'); toast(Object.entries(r).map(([k, v]) => `${k}: ${v}`).join(' · '), 8000); setTimeout(reload, 3000); } catch (e) { toast(e.message, 5000); } });

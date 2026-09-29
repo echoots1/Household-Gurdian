@@ -7,7 +7,8 @@
   <p><b>@(s.GetValueOrDefault(SettingKeys.MonitoredUser) ?? "(not set)")</b> @if (s.GetValueOrDefault(SettingKeys.MonitoredUserIsAdmin) == "1") { <span class="pill other">administrator</span> }</p>
   @if (s.GetValueOrDefault(SettingKeys.MonitoredUserIsAdmin) == "1") { <p class="notice small">This account is an administrator: the child could stop or remove Guardian. A standard account is the real control.</p> }
   <p>Notice accepted: <b>@(Model.NoticeAcceptedAt?.ToString("MMM d, yyyy h:mm tt") ?? "not yet")</b></p>
-  <p class="muted small">Installed version @Model.Version. Data folder: <code>@Model.DataDir</code>. To change the monitored account, run the installer again.</p>
+  <form class="row wrap" onsubmit="return false"><input id="monitored-user" placeholder="account name"><button class="btn" id="change-user">Change monitored account</button></form>
+  <p class="muted small">Changing the account clears the notice acceptance: the new account must press "I understand" before anything is recorded. Installed version @Model.Version. Data folder: <code>@Model.DataDir</code>.</p>
 </section>
 <section class="card"><h3>Dashboard access</h3>
   <p>LAN: <code>https://@Model.Host:@Ports.Web/</code> @foreach (var ip in Model.LanAddresses) { <span class="muted small">· https://@ip:@Ports.Web/</span> }</p>
