@@ -1,0 +1,26 @@
+{\rtf1\ansi\ansicpg1252\deff0{\fonttbl{\f0\fswiss\fcharset0 Segoe UI;}}
+\viewkind4\uc1\pard\sa120\f0\fs20
+\b Read this before you install Guardian.\b0\par
+Guardian is a parental-control tool that runs on this PC only. It watches one Windows account that you choose during setup. Nothing is hidden from the child: a tray icon is always visible while it runs, and the child sees this same text on a notice screen the first time they sign in. Installing it means you accept that the child can see it, and that you will show them what it does.\par
+\b What Guardian records\b0\par
+- The name of the app in use and how long it is used.\par
+- Which websites are visited: the site name (like youtube.com) and the page title. Not the full address, and never what is typed.\par
+- The time of day, and whether the computer is idle or locked.\par
+\b What Guardian never records\b0\par
+- Keystrokes, passwords, or anything typed.\par
+- Screenshots, screen recording, camera, or microphone.\par
+- Messages, chats, email, or the contents of files.\par
+\b What can happen\b0\par
+- A warning 5 minutes and 1 minute before a limit or bedtime.\par
+- Apps in a category may be closed when that category's time is up.\par
+- At bedtime, or when the daily limit is reached, the child is signed out (not shut down).\par
+- The child can ask for more time from the Guardian tray icon; a parent decides.\par
+\b What this installer changes on this PC\b0\par
+- Installs the Guardian service (GuardianSvc) and the tray program under C:\\Program Files\\Guardian.\par
+- Stores all data in C:\\ProgramData\\Guardian, readable only by administrators and the system.\par
+- Writes Chrome and Edge policies that force-install the Guardian browser extension and turn off Incognito / InPrivate windows. The browsers will show "managed by your organization".\par
+- Opens Windows Firewall port 47131 on private networks so you can open the dashboard from another device at home.\par
+\b Where the data goes\b0\par
+Everything stays on this PC (plus a backup copy if you set a backup share). There is no cloud account and no telemetry. Uninstalling removes the service, the policies and the firewall rule, and by default deletes all stored data.\par
+Supported browsers for website tracking: Chrome and Edge.\par
+}

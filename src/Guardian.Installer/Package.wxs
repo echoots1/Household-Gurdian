@@ -34,11 +34,9 @@
 
     <!-- Public, secure properties (settable on the msiexec command line, passed through to the elevated server side). -->
     <Property Id="DELETEDATA" Value="1" Secure="yes" />
-    <Property Id="ARPPRODUCTICON" Value="GuardianIcon" />
     <Property Id="ARPNOMODIFY" Value="1" />
     <Property Id="ARPURLINFOABOUT" Value="http://localhost:47130/" />
     <Property Id="ARPHELPLINK" Value="http://localhost:47130/" />
-    <Icon Id="GuardianIcon" SourceFile="$(var.PublishDir)\GuardianTray.exe" />
 
     <Feature Id="Main" Title="Guardian" Level="1" AllowAbsent="no" Description="Guardian service, tray indicator, browser extension and category lists.">
       <ComponentGroupRef Id="AppFiles" />
