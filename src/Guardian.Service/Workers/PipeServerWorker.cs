@@ -81,23 +81,23 @@ public sealed class PipeServerWorker : BackgroundService
     {
         var now = _clock.Now;
         var monitored = _settings.MonitoredUser;
+        var user = req.User ?? req.Sample?.User ?? "";
+        // Only the monitored account is recorded or enforced. Anyone else's tray (and every tray before setup) just sees "on".
+        var isMonitored = monitored.Length > 0 && string.Equals(user, monitored, StringComparison.OrdinalIgnoreCase);
+        if (!isMonitored)
+            return new PipeResponse { Status = new TrayStatus { State = TrayState.On, Tooltip = monitored.Length == 0 ? "Guardian is on (setup not finished)" : "Guardian is on (this account is not monitored)", NoticeAccepted = true, MonitoredUser = monitored } };
         switch (req.Type)
         {
             case "sample":
                 if (req.Sample is { } s)
                 {
-                    // Only the monitored account is recorded. Anyone else's tray just sees "on" and nothing is stored.
-                    if (monitored.Length > 0 && string.Equals(s.User, monitored, StringComparison.OrdinalIgnoreCase))
-                    {
-                        s.At = now;
-                        _state.OnSample(s, now);
-                        if (_settings.NoticeAcceptedAt is not null) _state.Sampler.OnSample(s);
-                    }
-                    else return new PipeResponse { Status = new TrayStatus { State = TrayState.On, Tooltip = "Guardian is on (this account is not monitored)", NoticeAccepted = true, MonitoredUser = monitored } };
+                    s.At = now; s.User = user;
+                    _state.OnSample(s, now);
+                    if (_settings.NoticeAcceptedAt is not null) _state.Sampler.OnSample(s);
                 }
                 break;
             case "ack_notice":
-                if (_settings.NoticeAcceptedAt is null && (monitored.Length == 0 || string.Equals(req.User, monitored, StringComparison.OrdinalIgnoreCase)))
+                if (_settings.NoticeAcceptedAt is null)
                 {
                     _settings.Set(SettingKeys.NoticeAcceptedAt, now.ToUnix().ToString());
                     _events.AddSession(now, "notice_accepted", req.User);

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Guardian MSI: one per-machine package that installs the service + tray, the browser policy keys,
+  the data folder (lists + packed extension), the data-folder ACL and the LAN firewall rule.
+  Preprocessor variables (from Guardian.Installer.wixproj DefineConstants):
+    Version, PublishDir, ExtDir, ListsDir, ExtensionId
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+     xmlns:fw="http://wixtoolset.org/schemas/v4/wxs/firewall"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Package Name="Guardian"
+           Manufacturer="Household Guardian"
+           Version="$(var.Version)"
+           UpgradeCode="7C1D2E7A-5B7E-4F6A-9C1B-2E3D4F5A6B7C"
+           Scope="perMachine"
+           Language="1033"
+           Codepage="1252"
+           Compressed="yes"
+           InstallerVersion="500">
+
+    <SummaryInformation Description="Guardian: local screen-time and web-activity monitoring for one account on this PC"
+                        Manufacturer="Household Guardian" />
+
+    <MajorUpgrade Schedule="afterInstallInitialize"
+                  DowngradeErrorMessage="A newer version of Guardian is already installed. Uninstall it first if you really want to go back." />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- Windows 10/11 x64 only. "Installed OR" keeps uninstall/repair working regardless. -->
+    <Launch Condition="Installed OR (VersionNT64 AND VersionNT &gt;= 603)"
+            Message="Guardian requires 64-bit Windows 10 or Windows 11." />
+
+    <!-- Public, secure properties (settable on the msiexec command line, passed through to the elevated server side). -->
+    <Property Id="DELETEDATA" Value="1" Secure="yes" />
+    <Property Id="ARPPRODUCTICON" Value="GuardianIcon" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="ARPURLINFOABOUT" Value="http://localhost:47130/" />
+    <Property Id="ARPHELPLINK" Value="http://localhost:47130/" />
+    <Icon Id="GuardianIcon" SourceFile="$(var.PublishDir)\GuardianTray.exe" />
+
+    <Feature Id="Main" Title="Guardian" Level="1" AllowAbsent="no" Description="Guardian service, tray indicator, browser extension and category lists.">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentGroupRef Id="ServiceComponents" />
+      <ComponentGroupRef Id="RegistryComponents" />
+      <ComponentGroupRef Id="DataComponents" />
+    </Feature>
+
+    <!-- ===== Custom actions ===== -->
+
+    <!-- Best-effort ACL: strip inheritance on %ProgramData%\Guardian and leave only SYSTEM + Administrators.
+         The service re-applies the same ACL on every start, so a failure here is not fatal (Return="ignore"). -->
+    <SetProperty Id="SetDataAcl"
+                 Value="&quot;[System64Folder]icacls.exe&quot; &quot;[CommonAppDataFolder]Guardian&quot; /inheritance:r /grant:r &quot;*S-1-5-18:(OI)(CI)F&quot; &quot;*S-1-5-32-544:(OI)(CI)F&quot;"
+                 Sequence="execute"
+                 Before="SetDataAcl" />
+    <CustomAction Id="SetDataAcl"
+                  DllEntry="WixQuietExec"
+                  BinaryRef="Wix4UtilCA_X64"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Delete all data on a real uninstall (not on upgrade), when DELETEDATA=1 (default; pass DELETEDATA=0 to keep it). -->
+    <SetProperty Id="DeleteData"
+                 Value="&quot;[System64Folder]cmd.exe&quot; /c rmdir /s /q &quot;[CommonAppDataFolder]Guardian&quot;"
+                 Sequence="execute"
+                 Before="DeleteData" />
+    <CustomAction Id="DeleteData"
+                  DllEntry="WixQuietExec"
+                  BinaryRef="Wix4UtilCA_X64"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Open the setup wizard in the default browser when the parent finishes the installer (ExitDialog checkbox). -->
+    <Property Id="WixShellExecTarget" Value="http://localhost:47130/setup" />
+    <CustomAction Id="LaunchSetupPage"
+                  DllEntry="WixShellExec"
+                  BinaryRef="Wix4UtilCA_X64"
+                  Execute="immediate"
+                  Impersonate="yes"
+                  Return="ignore" />
+
+    <InstallExecuteSequence>
+      <!-- After InstallFiles the data folder exists (CreateFolders ran earlier). Skipped on uninstall. -->
+      <Custom Action="SetDataAcl" After="InstallFiles" Condition="NOT (REMOVE~=&quot;ALL&quot;)" />
+      <!-- Runs after StopServices/DeleteServices/RemoveFiles, so guardian.db is no longer open. -->
+      <Custom Action="DeleteData" After="RemoveFiles" Condition="(REMOVE~=&quot;ALL&quot;) AND (NOT UPGRADINGPRODUCTCODE) AND (DELETEDATA=1)" />
+    </InstallExecuteSequence>
+
+    <!-- ===== UI ===== -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <!-- The "license" is the notice text: what Guardian collects. The parent must read it before installing. -->
+    <WixVariable Id="WixUILicenseRtf" Value="license.rtf" />
+
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Open the Guardian setup page now" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+
+    <UI>
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchSetupPage"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
+
+      <!-- Uninstall flow: MaintenanceTypeDlg -> DeleteDataDlg -> VerifyReadyDlg.
+           Later Publish rows (higher Order) win over the ones WixUI_InstallDir ships, which is the documented way to re-route WixUI. -->
+      <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog" Value="DeleteDataDlg" Order="99" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="DeleteDataDlg" Order="99"
+               Condition="WixUI_InstallMode = &quot;Remove&quot;" />
+
+      <Dialog Id="DeleteDataDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="WixUI_Bmp_Banner" />
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="300" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Remove Guardian data?" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="330" Height="15" Transparent="yes" NoPrefix="yes" Text="Choose what happens to the activity history stored on this PC." />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+
+        <Control Id="DeleteDataCheck" Type="CheckBox" X="20" Y="60" Width="330" Height="18"
+                 Property="DELETEDATA" CheckBoxValue="1"
+                 Text="Delete all Guardian data (activity, settings, backups)" />
+        <Control Id="Note" Type="Text" X="20" Y="85" Width="330" Height="70" NoPrefix="yes"
+                 Text="Everything Guardian stores lives in C:\ProgramData\Guardian: the activity database, the parent password and settings, the category lists, the certificate, logs and local backup copies. With the box checked, that folder is removed. Uncheck it to keep the history for later; you can delete the folder by hand at any time. Copies on a backup share are never touched." />
+
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="&amp;Back">
+          <Publish Event="NewDialog" Value="MaintenanceTypeDlg" />
+        </Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="&amp;Next">
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+    </UI>
+  </Package>
+</Wix>

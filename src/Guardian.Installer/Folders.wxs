@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Install folder (C:\Program Files\Guardian\), harvested application files, the service and its firewall rule. -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+     xmlns:fw="http://wixtoolset.org/schemas/v4/wxs/firewall">
+
+  <Fragment>
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Guardian" />
+    </StandardDirectory>
+  </Fragment>
+
+  <Fragment>
+    <!-- Everything from the merged self-contained publish folder (service + tray + .NET runtime), except the service exe,
+         which is authored by hand below so ServiceInstall/FirewallException can hang off it. -->
+    <ComponentGroup Id="AppFiles">
+      <Files Include="$(var.PublishDir)\**" Directory="INSTALLFOLDER">
+        <Exclude Files="$(var.PublishDir)\GuardianSvc.exe" />
+        <Exclude Files="$(var.PublishDir)\*.pdb" />
+        <Exclude Files="$(var.PublishDir)\**\*.pdb" />
+      </Files>
+      <Component Id="ReadmeInstall" Directory="INSTALLFOLDER" Guid="5D2A0C4E-1F3B-4E8C-9A7D-6B5C4D3E2F1A">
+        <File Id="ReadmeInstallTxt" Source="README-install.txt" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="ServiceComponents">
+      <Component Id="GuardianService" Directory="INSTALLFOLDER" Guid="2F6B9E1C-8D4A-4C7E-B5F3-1A2B3C4D5E6F">
+        <File Id="GuardianSvcExe" Source="$(var.PublishDir)\GuardianSvc.exe" KeyPath="yes">
+          <!-- Inbound 47131 (parent dashboard over HTTPS) from private-profile networks only. Program = this exe. -->
+          <fw:FirewallException Id="GuardianDashboardFw"
+                                Name="Guardian dashboard (47131)"
+                                Description="Guardian parent dashboard (HTTPS) on the local network"
+                                Port="47131"
+                                Protocol="tcp"
+                                Profile="private"
+                                Scope="any" />
+        </File>
+
+        <!-- Account is omitted: an empty StartName means LocalSystem to the Service Control Manager. -->
+        <ServiceInstall Id="GuardianSvcInstall"
+                        Name="GuardianSvc"
+                        DisplayName="Guardian"
+                        Description="Household Guardian: local screen-time and web-activity monitoring for one account on this PC. Visible by design."
+                        Type="ownProcess"
+                        Start="auto"
+                        ErrorControl="normal"
+                        Vital="yes">
+          <util:ServiceConfig FirstFailureActionType="restart"
+                              SecondFailureActionType="restart"
+                              ThirdFailureActionType="restart"
+                              RestartServiceDelayInSeconds="60"
+                              ResetPeriodInDays="1" />
+        </ServiceInstall>
+        <ServiceControl Id="GuardianSvcControl"
+                        Name="GuardianSvc"
+                        Start="install"
+                        Stop="both"
+                        Remove="uninstall"
+                        Wait="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>
