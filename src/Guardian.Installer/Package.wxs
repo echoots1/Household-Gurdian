@@ -34,7 +34,6 @@
 
     <!-- Public, secure properties (settable on the msiexec command line, passed through to the elevated server side). -->
     <Property Id="DELETEDATA" Value="1" Secure="yes" />
-    <Property Id="ARPNOMODIFY" Value="1" />
     <Property Id="ARPURLINFOABOUT" Value="http://localhost:47130/" />
     <Property Id="ARPHELPLINK" Value="http://localhost:47130/" />
 
