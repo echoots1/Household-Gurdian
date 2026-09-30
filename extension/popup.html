@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Guardian</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <h1>Guardian</h1>
+  </header>
+  <p class="what">This extension sends the site name (domain) and page title of the tab you are looking at, and how many seconds you spent on it, to the Guardian service on this computer. Nothing else.</p>
+
+  <section class="status">
+    <div><span class="label">Service</span> <span id="status">…</span></div>
+    <div><span class="label">Last sent</span> <span id="last-sent">never</span></div>
+    <div><span class="label">Waiting to send</span> <span id="queue">0</span></div>
+  </section>
+
+  <h2>Sent in the last hour</h2>
+  <table id="log">
+    <thead><tr><th>Time</th><th>Site</th><th class="num">Seconds</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <p id="empty" class="muted" hidden>Nothing sent in the last hour.</p>
+
+  <footer>
+    <a id="see-activity" href="http://localhost:47130/me">See my activity</a>
+  </footer>
+  <script src="popup.js"></script>
+</body>
+</html>

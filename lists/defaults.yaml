@@ -1,0 +1,75 @@
+# Default categorization rules. First match by ascending priority wins; unmatched falls to Other.
+# match: process | domain | title. Process patterns are exe names without ".exe"; a trailing * is a prefix match.
+# Editable without a rebuild: the service reads this file on first start (and never overwrites the parent's edits).
+rules:
+  # ---- School ----
+  - {match: domain, pattern: classroom.google.com, category: School, priority: 10}
+  - {match: domain, pattern: docs.google.com, category: School, priority: 10}
+  - {match: domain, pattern: drive.google.com, category: School, priority: 10}
+  - {match: domain, pattern: khanacademy.org, category: School, priority: 10}
+  - {match: domain, pattern: instructure.com, category: School, priority: 10}
+  - {match: domain, pattern: canvaslms.com, category: School, priority: 10}
+  - {match: domain, pattern: schoology.com, category: School, priority: 10}
+  - {match: domain, pattern: blackboard.com, category: School, priority: 10}
+  - {match: domain, pattern: powerschool.com, category: School, priority: 10}
+  - {match: domain, pattern: quizlet.com, category: School, priority: 10}
+  - {match: domain, pattern: duolingo.com, category: School, priority: 10}
+  - {match: domain, pattern: ixl.com, category: School, priority: 10}
+  - {match: domain, pattern: desmos.com, category: School, priority: 10}
+  - {match: domain, pattern: wolframalpha.com, category: School, priority: 10}
+  - {match: domain, pattern: office.com, category: School, priority: 10}
+  - {match: domain, pattern: microsoft365.com, category: School, priority: 10}
+  - {match: domain, pattern: onenote.com, category: School, priority: 10}
+  - {match: domain, pattern: wikipedia.org, category: School, priority: 20}
+  - {match: domain, pattern: google.com, category: School, priority: 30}
+  - {match: process, pattern: winword, category: School, priority: 10}
+  - {match: process, pattern: excel, category: School, priority: 10}
+  - {match: process, pattern: powerpnt, category: School, priority: 10}
+  - {match: process, pattern: onenote, category: School, priority: 10}
+  - {match: process, pattern: onenoteim, category: School, priority: 10}
+  - {match: process, pattern: acrobat, category: School, priority: 10}
+  - {match: process, pattern: notepad, category: School, priority: 50}
+  # ---- Gaming ----
+  - {match: process, pattern: steam, category: Gaming, priority: 10}
+  - {match: process, pattern: steamwebhelper, category: Gaming, priority: 10}
+  - {match: process, pattern: epicgameslauncher, category: Gaming, priority: 10}
+  - {match: process, pattern: robloxplayerbeta, category: Gaming, priority: 10}
+  - {match: process, pattern: robloxstudiobeta, category: Gaming, priority: 10}
+  - {match: process, pattern: minecraft*, category: Gaming, priority: 10}
+  - {match: process, pattern: javaw, category: Gaming, priority: 40}
+  - {match: process, pattern: fortniteclient-win64-shipping, category: Gaming, priority: 10}
+  - {match: process, pattern: valorant*, category: Gaming, priority: 10}
+  - {match: process, pattern: riotclientservices, category: Gaming, priority: 10}
+  - {match: process, pattern: leagueclient*, category: Gaming, priority: 10}
+  - {match: process, pattern: overwatch, category: Gaming, priority: 10}
+  - {match: process, pattern: battle.net, category: Gaming, priority: 10}
+  - {match: process, pattern: eadesktop, category: Gaming, priority: 10}
+  - {match: process, pattern: origin, category: Gaming, priority: 10}
+  - {match: process, pattern: gog galaxy, category: Gaming, priority: 10}
+  - {match: process, pattern: galaxyclient, category: Gaming, priority: 10}
+  - {match: process, pattern: xboxapp, category: Gaming, priority: 10}
+  - {match: process, pattern: xboxpcapp, category: Gaming, priority: 10}
+  - {match: process, pattern: gamebar, category: Gaming, priority: 10}
+  - {match: process, pattern: rocketleague, category: Gaming, priority: 10}
+  - {match: process, pattern: cs2, category: Gaming, priority: 10}
+  - {match: process, pattern: csgo, category: Gaming, priority: 10}
+  - {match: process, pattern: dota2, category: Gaming, priority: 10}
+  - {match: process, pattern: gta5, category: Gaming, priority: 10}
+  - {match: process, pattern: r5apex, category: Gaming, priority: 10}
+  - {match: process, pattern: terraria, category: Gaming, priority: 10}
+  - {match: process, pattern: stardew valley, category: Gaming, priority: 10}
+  - {match: process, pattern: amongus, category: Gaming, priority: 10}
+  - {match: process, pattern: fallguys_client*, category: Gaming, priority: 10}
+  - {match: process, pattern: genshinimpact, category: Gaming, priority: 10}
+  - {match: process, pattern: discord, category: Gaming, priority: 60}
+  - {match: domain, pattern: roblox.com, category: Gaming, priority: 10}
+  - {match: domain, pattern: minecraft.net, category: Gaming, priority: 10}
+  - {match: domain, pattern: steampowered.com, category: Gaming, priority: 10}
+  - {match: domain, pattern: steamcommunity.com, category: Gaming, priority: 10}
+  - {match: domain, pattern: epicgames.com, category: Gaming, priority: 10}
+  - {match: domain, pattern: twitch.tv, category: Gaming, priority: 10}
+  - {match: domain, pattern: poki.com, category: Gaming, priority: 10}
+  - {match: domain, pattern: coolmathgames.com, category: Gaming, priority: 10}
+  - {match: domain, pattern: crazygames.com, category: Gaming, priority: 10}
+  - {match: domain, pattern: itch.io, category: Gaming, priority: 10}
+  - {match: domain, pattern: discord.com, category: Gaming, priority: 60}

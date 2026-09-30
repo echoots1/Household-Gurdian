@@ -1,0 +1,57 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <!--
+    Guardian MSI (WiX v5 SDK-style project). Builds on Windows only; it is deliberately NOT part of Guardian.sln.
+
+      dotnet build src/Guardian.Installer/Guardian.Installer.wixproj -c Release ^
+        -p:Version=1.2.3 ^
+        -p:PublishDir=C:\path\to\artifacts\publish ^
+        -p:ExtDir=C:\path\to\artifacts\ext ^
+        -p:ExtensionId=abcdefghijklmnopabcdefghijklmnop
+
+    PublishDir   merged self-contained publish output of Guardian.Service and Guardian.Tray (GuardianSvc.exe + GuardianTray.exe + runtime).
+    ExtDir       folder holding guardian.crx, guardian.crx.id, guardian.crx.version (output of tools/CrxPack).
+    ExtensionId  32-char a..p extension id printed by CrxPack (the placeholder default builds, but the forcelist entry will not match).
+    Version      MSI ProductVersion (x.y.z). CI passes the tag without "v", or 1.0.<run_number>.
+  -->
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <Version Condition="'$(Version)' == ''">1.0.0</Version>
+    <OutputName>Guardian-$(Version)</OutputName>
+    <DefaultCompressionLevel>high</DefaultCompressionLevel>
+
+    <RepoRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '..', '..'))</RepoRoot>
+    <PublishDir Condition="'$(PublishDir)' == ''">$(RepoRoot)artifacts\publish</PublishDir>
+    <ExtDir Condition="'$(ExtDir)' == ''">$(RepoRoot)artifacts\ext</ExtDir>
+    <ListsDir Condition="'$(ListsDir)' == ''">$(RepoRoot)lists</ListsDir>
+    <ExtensionId Condition="'$(ExtensionId)' == ''">aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</ExtensionId>
+
+    <!-- Preprocessor variables must not end in a backslash: a trailing "\" before the closing quote of -d "X=C:\dir\" would escape the quote. -->
+    <PublishDir>$([System.IO.Path]::TrimEndingDirectorySeparator('$([System.IO.Path]::GetFullPath('$(PublishDir)'))'))</PublishDir>
+    <ExtDir>$([System.IO.Path]::TrimEndingDirectorySeparator('$([System.IO.Path]::GetFullPath('$(ExtDir)'))'))</ExtDir>
+    <ListsDir>$([System.IO.Path]::TrimEndingDirectorySeparator('$([System.IO.Path]::GetFullPath('$(ListsDir)'))'))</ListsDir>
+
+    <DefineConstants>$(DefineConstants);Version=$(Version);PublishDir=$(PublishDir);ExtDir=$(ExtDir);ListsDir=$(ListsDir);ExtensionId=$(ExtensionId)</DefineConstants>
+
+    <!-- ICE validation runs against the harvested runtime (~700 files); keep it on but do not fail on the informational ones. -->
+    <SuppressIces>ICE03;ICE30;ICE57;ICE61</SuppressIces>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+    <PackageReference Include="WixToolset.Firewall.wixext" Version="5.0.2" />
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="license.rtf" />
+    <Content Include="README-install.txt" />
+  </ItemGroup>
+
+  <Target Name="GuardianCheckInputs" BeforeTargets="CoreCompile">
+    <Error Condition="!Exists('$(PublishDir)\GuardianSvc.exe')" Text="PublishDir '$(PublishDir)' does not contain GuardianSvc.exe. Publish Guardian.Service and Guardian.Tray into it first (see README.md)." />
+    <Error Condition="!Exists('$(PublishDir)\GuardianTray.exe')" Text="PublishDir '$(PublishDir)' does not contain GuardianTray.exe. Publish Guardian.Tray into it first (see README.md)." />
+    <Error Condition="!Exists('$(ExtDir)\guardian.crx')" Text="ExtDir '$(ExtDir)' does not contain guardian.crx. Run tools/CrxPack first (see README.md)." />
+    <Warning Condition="'$(ExtensionId)' == 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'" Text="ExtensionId is the placeholder; the ExtensionInstallForcelist entry will not match the packed CRX. Pass -p:ExtensionId=(contents of guardian.crx.id)." />
+  </Target>
+</Project>

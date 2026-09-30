@@ -1,0 +1,15 @@
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+artifacts/
+extension/node_modules/
+extension/build/
+*.db
+*.db-wal
+*.db-shm
+*.pfx
+*.crx
+*.pem

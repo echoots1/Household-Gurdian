@@ -1,0 +1,21 @@
+{
+  "name": "guardian-extension",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Guardian browser extension (Chrome/Edge, Manifest V3): reports the active tab's registrable domain and title to the local Guardian service.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/make-icons.mjs && node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/build.mjs tests && node --test build/test/*.test.mjs"
+  },
+  "dependencies": {
+    "psl": "^1.15.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "@types/node": "^22.20.4",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.7.2"
+  }
+}

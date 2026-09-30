@@ -1,0 +1,9 @@
+@page "/me"
+@model Guardian.Service.Pages.Me.IndexModel
+@{ ViewData["Title"] = "Today"; }
+<h1>Today</h1>
+@if (!Model.View.NoticeAccepted) { <div class="notice warn">The Guardian notice has not been accepted yet. Nothing is recorded until you press "I understand" on the notice screen.</div> }
+<div id="today" hx-get="/me?handler=Panel" hx-trigger="every 30s" hx-swap="innerHTML">
+  <partial name="_TodayPanel" model="Model.View" />
+</div>
+<p class="muted small">These are the same numbers your parent sees. Updates every 30 seconds.</p>

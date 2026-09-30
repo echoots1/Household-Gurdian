@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  %ProgramData%\Guardian\ (CommonAppDataFolder\Guardian):
+    lists\   category lists + defaults.yaml + sources.txt. NeverOverwrite so a parent's edits survive upgrades.
+             Permanent="yes" is required for that to hold with MajorUpgrade/@Schedule="afterInstallInitialize":
+             the old product is removed before the new files are costed/installed, so a non-permanent
+             NeverOverwrite component would be deleted by the old product and then skipped by the new one.
+             On a real uninstall the DeleteData custom action removes the whole folder (DELETEDATA=1, the default).
+    ext\     guardian.crx + guardian.id + guardian.version (served by the service at /ext/update.xml); replaced on upgrade.
+    backup\  logs\   created empty; the service also creates them if missing.
+  ACL: SYSTEM + BUILTIN\Administrators full control (util:PermissionEx), then the SetDataAcl custom action strips
+       inherited Users read. The service re-applies the same ACL on every start.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Fragment>
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="DataFolder" Name="Guardian">
+        <Directory Id="DataListsFolder" Name="lists" />
+        <Directory Id="DataExtFolder" Name="ext" />
+        <Directory Id="DataBackupFolder" Name="backup" />
+        <Directory Id="DataLogsFolder" Name="logs" />
+      </Directory>
+    </StandardDirectory>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="DataComponents">
+
+      <Component Id="DataFolderAcl" Directory="DataFolder" Guid="B7E1D2C3-0001-4F5E-8A9B-0C1D2E3F4A5B">
+        <CreateFolder>
+          <util:PermissionEx User="SYSTEM" GenericAll="yes" />
+          <util:PermissionEx User="Administrators" GenericAll="yes" />
+        </CreateFolder>
+      </Component>
+      <Component Id="DataBackupFolderC" Directory="DataBackupFolder" Guid="B7E1D2C3-0002-4F5E-8A9B-0C1D2E3F4A5B">
+        <CreateFolder />
+      </Component>
+      <Component Id="DataLogsFolderC" Directory="DataLogsFolder" Guid="B7E1D2C3-0003-4F5E-8A9B-0C1D2E3F4A5B">
+        <CreateFolder />
+      </Component>
+
+      <!-- Category lists: one component per file, never overwritten once present. -->
+      <Component Id="ListAdult" Directory="DataListsFolder" Guid="B7E1D2C3-0101-4F5E-8A9B-0C1D2E3F4A5B" NeverOverwrite="yes" Permanent="yes">
+        <File Id="ListAdultTxt" Source="$(var.ListsDir)\adult.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="ListGambling" Directory="DataListsFolder" Guid="B7E1D2C3-0102-4F5E-8A9B-0C1D2E3F4A5B" NeverOverwrite="yes" Permanent="yes">
+        <File Id="ListGamblingTxt" Source="$(var.ListsDir)\gambling.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="ListDrugs" Directory="DataListsFolder" Guid="B7E1D2C3-0103-4F5E-8A9B-0C1D2E3F4A5B" NeverOverwrite="yes" Permanent="yes">
+        <File Id="ListDrugsTxt" Source="$(var.ListsDir)\drugs.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="ListWeapons" Directory="DataListsFolder" Guid="B7E1D2C3-0104-4F5E-8A9B-0C1D2E3F4A5B" NeverOverwrite="yes" Permanent="yes">
+        <File Id="ListWeaponsTxt" Source="$(var.ListsDir)\weapons.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="ListCustom" Directory="DataListsFolder" Guid="B7E1D2C3-0105-4F5E-8A9B-0C1D2E3F4A5B" NeverOverwrite="yes" Permanent="yes">
+        <File Id="ListCustomTxt" Source="$(var.ListsDir)\custom.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="ListSources" Directory="DataListsFolder" Guid="B7E1D2C3-0106-4F5E-8A9B-0C1D2E3F4A5B" NeverOverwrite="yes" Permanent="yes">
+        <File Id="ListSourcesTxt" Source="$(var.ListsDir)\sources.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="ListDefaults" Directory="DataListsFolder" Guid="B7E1D2C3-0107-4F5E-8A9B-0C1D2E3F4A5B" NeverOverwrite="yes" Permanent="yes">
+        <File Id="ListDefaultsYaml" Source="$(var.ListsDir)\defaults.yaml" KeyPath="yes" />
+      </Component>
+
+      <!-- Packed extension. CrxPack writes guardian.crx, guardian.crx.id and guardian.crx.version;
+           the service expects guardian.crx, guardian.id and guardian.version. -->
+      <Component Id="ExtCrx" Directory="DataExtFolder" Guid="B7E1D2C3-0201-4F5E-8A9B-0C1D2E3F4A5B">
+        <File Id="ExtGuardianCrx" Source="$(var.ExtDir)\guardian.crx" Name="guardian.crx" KeyPath="yes" />
+      </Component>
+      <Component Id="ExtId" Directory="DataExtFolder" Guid="B7E1D2C3-0202-4F5E-8A9B-0C1D2E3F4A5B">
+        <File Id="ExtGuardianId" Source="$(var.ExtDir)\guardian.crx.id" Name="guardian.id" KeyPath="yes" />
+      </Component>
+      <Component Id="ExtVersion" Directory="DataExtFolder" Guid="B7E1D2C3-0203-4F5E-8A9B-0C1D2E3F4A5B">
+        <File Id="ExtGuardianVersion" Source="$(var.ExtDir)\guardian.crx.version" Name="guardian.version" KeyPath="yes" />
+      </Component>
+
+    </ComponentGroup>
+  </Fragment>
+</Wix>

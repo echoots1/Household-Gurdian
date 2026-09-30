@@ -1,0 +1,48 @@
+@page
+@model PolicyModel
+@{ ViewData["Title"] = "Policy"; var p = Model.Policy; }
+<div class="row between wrap"><h1>Policy <span class="muted small">v@(p.Version)</span></h1><button class="btn primary" id="save-policy">Save policy</button></div>
+<form id="policy-form" onsubmit="return false">
+<section class="card"><h3>Bedtime</h3>
+  <p class="muted small">School nights are Sunday–Thursday; weekends are Friday and Saturday nights. At bedtime the child gets a 5-minute and a 1-minute warning, then is signed out. Leave a row blank for no bedtime.</p>
+  <div class="grid2">
+    <label>School nights <input type="time" name="bed_school_start" value="@p.Bedtime?.SchoolNights?.Start"> to <input type="time" name="bed_school_end" value="@p.Bedtime?.SchoolNights?.End"></label>
+    <label>Weekends <input type="time" name="bed_weekend_start" value="@p.Bedtime?.Weekends?.Start"> to <input type="time" name="bed_weekend_end" value="@p.Bedtime?.Weekends?.End"></label>
+  </div>
+</section>
+<section class="card"><h3>Daily limits (minutes)</h3>
+  <p class="muted small">Per calendar day. School time never counts toward the total. 0 or blank = no limit.</p>
+  <div class="grid3">
+    <label>Total (School excluded) <input type="number" min="0" max="1440" name="limit_total" value="@Lim(p, "total")"></label>
+    <label>Gaming <input type="number" min="0" max="1440" name="limit_Gaming" value="@Lim(p, Categories.Gaming)"></label>
+    <label>Other <input type="number" min="0" max="1440" name="limit_Other" value="@Lim(p, Categories.Other)"></label>
+  </div>
+</section>
+<section class="card"><h3>Allowed hours by category</h3>
+  <p class="muted small">Outside these windows the category's apps are closed after the warning sequence. No rows = allowed at any hour.</p>
+  <table class="wide" id="hours">
+    <tr><th>Category</th><th>Days</th><th>From</th><th>To</th><th></th></tr>
+    @foreach (var (cat, rules) in p.CategoryHours) { foreach (var r in rules) { <tr class="hours-row"><td><select name="h_cat">@foreach (var c in Categories.All) { <option selected="@(c == cat)">@c</option> }</select></td><td><input name="h_days" value="@string.Join(",", r.Days)" placeholder="Sat,Sun (blank = every day)"></td><td><input type="time" name="h_start" value="@r.Start"></td><td><input type="time" name="h_end" value="@r.End"></td><td><button class="link" onclick="this.closest('tr').remove()">remove</button></td></tr> } }
+    <tr class="hours-row template" hidden><td><select name="h_cat">@foreach (var c in Categories.All) { <option>@c</option> }</select></td><td><input name="h_days" placeholder="Sat,Sun (blank = every day)"></td><td><input type="time" name="h_start" value="09:00"></td><td><input type="time" name="h_end" value="20:00"></td><td><button class="link" onclick="this.closest('tr').remove()">remove</button></td></tr>
+  </table>
+  <button class="btn" id="add-hours">+ Add window</button>
+</section>
+</form>
+<section class="card"><h3>Exceptions</h3>
+  <p class="muted small">One-off overrides for a date. They apply within 15 seconds and the child sees them on their Schedule page.</p>
+  <form id="exception-form" class="row wrap" onsubmit="return false">
+    <label>Date <input type="date" name="date" value="@Model.Today" required></label>
+    <label><input type="checkbox" name="noBedtime"> No bedtime that night</label>
+    <label>Bedtime instead <input type="time" name="bedStart"> – <input type="time" name="bedEnd"></label>
+    <label>Total limit <input type="number" name="total" min="0" placeholder="min"></label>
+    <label>Extra minutes <input type="number" name="addMinutes" min="0" placeholder="min"></label>
+    <label>Note <input type="text" name="note" placeholder="Halloween"></label>
+    <button class="btn" id="add-exception">Add exception</button>
+  </form>
+  <table class="wide">
+  @foreach (var e in Model.Exceptions) { <tr><td class="nowrap">@e.Date</td><td>@PolicyModel.Describe(e)</td><td class="muted small">@e.CreatedAt.ToString("MMM d h:mm tt")</td><td><button class="link" data-del-exception="@e.Id">delete</button></td></tr> }
+  </table>
+  @if (Model.Exceptions.Count == 0) { <p class="muted">No upcoming exceptions.</p> }
+</section>
+<section class="card"><h3>History</h3><p class="muted small">@string.Join(" · ", Model.History.Select(h => $"v{h.version} {h.savedAt:MMM d h:mm tt}"))</p></section>
+@functions { static string Lim(Policy p, string k) => p.DailyLimits.TryGetValue(k, out var v) ? v.ToString() : ""; }

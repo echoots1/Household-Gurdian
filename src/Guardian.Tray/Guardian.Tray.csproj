@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- UseWPF is set only so the WindowsDesktop targeting pack exposes UIAutomationClient/UIAutomationTypes
+         (they sit in the pack's WPF profile). The app is plain WinForms; no WPF types are used. -->
+    <UseWPF>true</UseWPF>
+    <AssemblyName>GuardianTray</AssemblyName>
+    <RootNamespace>Guardian.Tray</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <!-- Icons are drawn at runtime with GDI+ (IconFactory.cs); no .ico asset is needed. -->
+    <!-- net8.0-windows implies [assembly: SupportedOSPlatform("windows7.0")]; no runtime OS checks are needed. -->
+    <GenerateSupportedOSPlatformAttribute>true</GenerateSupportedOSPlatformAttribute>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Guardian.Contracts/Guardian.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

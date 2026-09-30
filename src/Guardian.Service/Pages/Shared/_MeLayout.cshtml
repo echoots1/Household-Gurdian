@@ -1,0 +1,31 @@
+@{
+    var page = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+    string Active(string p) => page.Equals(p, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>@(ViewData["Title"] is string t ? t + " · My activity" : "My activity")</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/htmx.min.js" defer></script>
+  <script src="/js/app.js" defer></script>
+</head>
+<body class="me">
+<header class="top">
+  <span class="brand">🛡 Guardian · my activity</span>
+  <nav>
+    <a class="@Active("/Me/Index")" href="/me">Today</a>
+    <a class="@Active("/Me/Schedule")" href="/me/schedule">Schedule</a>
+    <a class="@Active("/Me/Collected")" href="/me/collected">What's collected</a>
+    <a class="@Active("/Me/Request")" href="/me/request">Request more time</a>
+  </nav>
+</header>
+<main>
+  @RenderBody()
+  <p class="muted small">Nothing on these pages changes anything. Requests go to your parent, who acts from the dashboard.</p>
+</main>
+<div id="toast" class="toast" hidden></div>
+</body>
+</html>

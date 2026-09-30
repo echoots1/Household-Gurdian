@@ -1,0 +1,12 @@
+@page "/me/request"
+@model Guardian.Service.Pages.Me.RequestModel
+@{ ViewData["Title"] = "Request more time"; }
+<section class="card">
+  <h1>Request more time</h1>
+  <p class="muted">This sends a note to your parent's dashboard. They decide.</p>
+  <form id="time-request" onsubmit="return false">
+    <label class="block">Reason (optional, one line) <input name="reason" maxlength="200" placeholder="I want to finish this level"></label>
+    <button class="btn primary" id="send-request">Send request</button>
+  </form>
+  <p id="request-result" class="muted"></p>
+</section>

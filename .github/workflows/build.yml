@@ -1,0 +1,170 @@
+name: build
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Publish a GitHub Release with this tag (e.g. v1.0.0). Leave empty for a plain build."
+        required: false
+        default: ""
+
+env:
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+
+jobs:
+  test:
+    name: Tests (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: dotnet test (Core, Service, CrxPack)
+        run: dotnet test Guardian.sln -c Release
+
+      - name: Extension build + tests
+        working-directory: extension
+        run: |
+          npm ci
+          npm run build
+          npm test
+
+  msi:
+    name: MSI (Windows)
+    needs: test
+    runs-on: windows-latest
+    permissions:
+      contents: write   # for the release step on tags
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Version
+        id: version
+        run: |
+          $rel = "${{ github.event.inputs.release }}"
+          if ("${{ github.ref }}" -like "refs/tags/v*") {
+            $v = "${{ github.ref_name }}".Substring(1)
+          } elseif ($rel -ne "") {
+            if ($rel -notmatch '^v\d+\.\d+\.\d+$') { throw "release input '$rel' must look like v1.2.3" }
+            $v = $rel.Substring(1)
+          } else {
+            $v = "1.0.${{ github.run_number }}"
+          }
+          if ($v -notmatch '^\d+\.\d+\.\d+$') { throw "Version '$v' is not x.y.z (MSI ProductVersion must be numeric)" }
+          "version=$v" >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $v"
+
+      - name: Extension build
+        working-directory: extension
+        run: |
+          npm ci
+          npm run build
+
+      - name: Extension signing key
+        env:
+          EXTENSION_KEY_PEM: ${{ secrets.EXTENSION_KEY_PEM }}
+        run: |
+          if ($env:EXTENSION_KEY_PEM -and $env:EXTENSION_KEY_PEM.Trim() -ne "") {
+            Set-Content -Path extension-key.pem -Value $env:EXTENSION_KEY_PEM -NoNewline
+            Write-Host "Using EXTENSION_KEY_PEM secret (stable extension id)."
+          } else {
+            Write-Host "::warning::Secret EXTENSION_KEY_PEM is not set. CrxPack will generate a throwaway key; the extension ID will change on every build until the secret is set (paste the contents of a PKCS#8 key.pem created by 'dotnet run --project tools/CrxPack -- extension/build key.pem out.crx')."
+          }
+
+      - name: Pack CRX
+        run: |
+          dotnet run --project tools/CrxPack -c Release -- extension/build extension-key.pem artifacts/ext/guardian.crx
+          $id = (Get-Content artifacts/ext/guardian.crx.id -Raw).Trim()
+          if ($id -notmatch '^[a-p]{32}$') { throw "Bad extension id '$id'" }
+          "id=$id" >> $env:GITHUB_OUTPUT
+          Write-Host "Extension ID: $id"
+          Write-Host "Extension version: $((Get-Content artifacts/ext/guardian.crx.version -Raw).Trim())"
+        id: crx
+
+      - name: Publish service + tray (self-contained, merged)
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          dotnet publish src/Guardian.Service -c Release -r win-x64 --self-contained true -p:PublishTrimmed=false -p:Version=$v -o artifacts/publish
+          dotnet publish src/Guardian.Tray    -c Release -r win-x64 --self-contained true -p:PublishTrimmed=false -p:UseAppHost=true -p:Version=$v -o artifacts/publish
+
+      - name: Verify publish output
+        run: |
+          foreach ($f in @("GuardianSvc.exe", "GuardianTray.exe", "GuardianSvc.runtimeconfig.json", "GuardianTray.runtimeconfig.json")) {
+            if (-not (Test-Path "artifacts/publish/$f")) { throw "artifacts/publish/$f is missing" }
+          }
+          $count = (Get-ChildItem artifacts/publish -Recurse -File).Count
+          $size = [math]::Round(((Get-ChildItem artifacts/publish -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), 1)
+          Write-Host "Publish folder: $count files, $size MB"
+
+      - name: Build MSI
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          dotnet build src/Guardian.Installer/Guardian.Installer.wixproj -c Release `
+            -p:Version=$v `
+            -p:PublishDir="$env:GITHUB_WORKSPACE\artifacts\publish" `
+            -p:ExtDir="$env:GITHUB_WORKSPACE\artifacts\ext" `
+            -p:ExtensionId="${{ steps.crx.outputs.id }}"
+          $msi = Get-ChildItem -Path src/Guardian.Installer/bin -Recurse -Filter "Guardian-$v.msi" | Select-Object -First 1
+          if (-not $msi) { throw "Guardian-$v.msi was not produced" }
+          New-Item -ItemType Directory -Force -Path artifacts/msi | Out-Null
+          Copy-Item $msi.FullName artifacts/msi/
+          Write-Host "MSI: $($msi.FullName) ($([math]::Round($msi.Length / 1MB, 1)) MB)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Guardian-msi
+          path: artifacts/msi/*.msi
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Guardian-extension
+          path: |
+            artifacts/ext/guardian.crx
+            artifacts/ext/guardian.crx.id
+            artifacts/ext/guardian.crx.version
+          if-no-files-found: error
+
+      - name: GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.release != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: Guardian ${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          files: |
+            artifacts/msi/Guardian-${{ steps.version.outputs.version }}.msi
+            artifacts/ext/guardian.crx
+          body: |
+            Extension ID: `${{ steps.crx.outputs.id }}`
+
+            Install: run the MSI as an administrator on the child's PC, then open http://localhost:47130/setup.
+            The MSI is self-contained (about 150 MB); no separate .NET install is needed.

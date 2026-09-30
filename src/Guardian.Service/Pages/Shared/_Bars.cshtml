@@ -1,0 +1,21 @@
+@model IReadOnlyList<DailyTotals>
+@{
+    // Stacked bars, one per day, rendered as plain HTML/CSS. Heights scale to the largest day (min 1 hour).
+    var max = Math.Max(3600, Model.Max(d => d.AllSeconds));
+    string H(int s) => (100.0 * s / max).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "%";
+}
+<div class="bars">
+@foreach (var d in Model)
+{
+    var date = DateOnly.Parse(d.Date);
+    <a class="bar" href="/?date=@d.Date" title="@d.Date: School @Queries.Hm(d.Seconds(Categories.School)), Gaming @Queries.Hm(d.Seconds(Categories.Gaming)), Other @Queries.Hm(d.Seconds(Categories.Other))">
+      <div class="stack">
+        <div class="seg other" style="height:@H(d.Seconds(Categories.Other))"></div>
+        <div class="seg gaming" style="height:@H(d.Seconds(Categories.Gaming))"></div>
+        <div class="seg school" style="height:@H(d.Seconds(Categories.School))"></div>
+      </div>
+      <div class="label">@date.DayOfWeek.ToString()[..3]<br><span class="muted">@Queries.Hm(d.AllSeconds)</span></div>
+    </a>
+}
+</div>
+<div class="legend"><span class="sw school"></span> School <span class="sw gaming"></span> Gaming <span class="sw other"></span> Other</div>

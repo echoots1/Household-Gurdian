@@ -1,0 +1,20 @@
+@page
+@model IndexModel
+@{ ViewData["Title"] = "Today"; }
+<div class="row between wrap">
+  <h1>Today</h1>
+  <div class="actions">
+    <button class="btn" data-action="add-minutes" data-prompt="Minutes to add today" data-default="30">+ Add minutes</button>
+    <button class="btn" data-action="pause" data-prompt="Pause all limits for how many hours?" data-default="1">Pause limits</button>
+    <button class="btn danger" data-action="lock-now" data-confirm="Sign the child out in 1 minute and keep them out for 1 hour?">Lock now</button>
+    @if (Model.View.Status.State is TrayState.Enforcing or TrayState.Warning)
+    { <button class="btn" data-action="cancel" data-reason="@Model.View.Status.EnforcingReason" data-confirm="Cancel the current enforcement for the rest of today?">Cancel enforcement</button> }
+  </div>
+</div>
+@if (!Model.View.NoticeAccepted) { <div class="notice warn">Waiting for notice acknowledgment: the child has not yet pressed "I understand" on the notice screen. Nothing is recorded or enforced until then.</div> }
+@if (!Model.View.SessionActive && Model.View.NoticeAccepted) { <div class="notice">The monitored account is not signed in (or the tray is not reporting).</div> }
+@if (Model.View.SessionActive && !Model.View.ExtensionActive) { <div class="notice small">The browser extension is not reporting; site names come from the address bar via the tray.</div> }
+<div id="today" hx-get="/?handler=Panel&date=@Model.View.Date" hx-trigger="every 30s" hx-swap="innerHTML">
+  <partial name="_TodayPanel" model="Model.View" />
+</div>
+<div class="health muted small">Service @Model.Version · up since @Model.StartedAt.ToString("MMM d h:mm tt") · <a href="/?date=@DateOnly.Parse(Model.View.Date).AddDays(-1)">← previous day</a></div>

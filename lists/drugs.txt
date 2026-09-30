@@ -1,0 +1,9 @@
+# Seed list.
+leafly.com
+weedmaps.com
+erowid.org
+bluelight.org
+shroomery.org
+grasscity.com
+dankstop.com
+smokecartel.com

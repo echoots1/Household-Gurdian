@@ -1,0 +1,41 @@
+@page
+@model ActivityModel
+@{ ViewData["Title"] = "Activity"; }
+<h1>Activity</h1>
+<form method="get" class="card row wrap filters">
+  <label>From <input type="date" name="from" value="@Model.From"></label>
+  <label>To <input type="date" name="to" value="@Model.To"></label>
+  <label>Category <select name="category"><option value="">All</option>@foreach (var c in Categories.All) { <option value="@c" selected="@(c == Model.Category)">@c</option> }</select></label>
+  <label>Search <input type="text" name="q" value="@Model.Q" placeholder="app, domain, title"></label>
+  <button class="btn">Filter</button>
+</form>
+<section class="card">
+  <table class="wide">
+    <tr><th>When</th><th>Duration</th><th>What</th><th>Category</th><th></th></tr>
+    @foreach (var row in Model.Rows)
+    {
+      if (row.Event is { } e)
+      {
+        <tr>
+          <td class="nowrap">@e.StartedAt.ToString("MMM d h:mm:ss tt")</td>
+          <td class="num">@Queries.Hm(e.Seconds)</td>
+          <td>@(e.Kind == "web" ? "🌐 " : "🖥 ")<b>@e.Name</b>@if (e.Subdomain is not null && e.Subdomain != e.Domain) { <span class="muted"> (@e.Subdomain)</span> }@if (!string.IsNullOrEmpty(e.Title)) { <div class="muted small">@e.Title</div> }</td>
+          <td><span class="pill @e.Category.ToLowerInvariant()">@e.Category</span></td>
+          <td class="nowrap">
+            <select class="reclass" data-kind="@e.Kind" data-name="@e.Name"><option value="">Reclassify…</option>@foreach (var c in Categories.All) { <option value="@c">@c</option> }</select>
+            @if (e.Kind == "web") { <button class="link" data-override="allow" data-domain="@e.Name">allow</button> <button class="link" data-override="flag" data-domain="@e.Name">always flag</button> }
+          </td>
+        </tr>
+      }
+      else if (row.Enforcement is { } en)
+      {
+        <tr class="event"><td class="nowrap">@en.At.ToString("MMM d h:mm:ss tt")</td><td></td><td colspan="3">⚖ @EnforcementReason.Describe(en.Reason): @en.Step.Replace('_', ' ') @(en.Detail is null ? "" : "· " + en.Detail) <span class="muted">(policy v@(en.PolicyVersion))</span></td></tr>
+      }
+      else if (row.Session is { } s)
+      {
+        <tr class="event"><td class="nowrap">@s.At.ToString("MMM d h:mm:ss tt")</td><td></td><td colspan="3">👤 @s.Kind.Replace('_', ' ') @(s.Detail is null ? "" : "· " + s.Detail)</td></tr>
+      }
+    }
+  </table>
+  @if (Model.Rows.Count == 0) { <p class="muted">No activity in this range.</p> }
+</section>
