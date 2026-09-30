@@ -68,6 +68,8 @@
   <ul class="compact">@foreach (var d in Model.Custom) { <li>@d <button class="link" data-custom-remove="@d">remove</button></li> }</ul>
   <h4>Overrides</h4>
   <ul class="compact">@foreach (var (d, m) in Model.Overrides) { <li>@d — @(m == "allow" ? "allowed" : "always flag") <button class="link" data-override="" data-domain="@d">clear</button></li> }</ul>
+  <h4>Browser extension</h4>
+  <p class="muted small">On this PC, in the child's browser, open <code>http://127.0.0.1:47130/ext/guardian.crx</code> and accept the prompt (needs the ExtensionInstallSources policy the installer writes). Or unzip the release's <code>guardian-extension-unpacked.zip</code> and use Developer mode → Load unpacked.</p>
   <h4>Export</h4>
   <p><a class="btn" href="/api/v1/export">Download all data (zip of CSVs)</a></p>
 </section>
