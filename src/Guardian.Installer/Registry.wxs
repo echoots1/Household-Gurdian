@@ -20,6 +20,11 @@
         <RegistryKey Root="HKLM" Key="SOFTWARE\Policies\Google\Chrome">
           <RegistryValue Name="IncognitoModeAvailability" Type="integer" Value="1" />
         </RegistryKey>
+        <!-- Lets the parent add the packed extension by browsing to http://127.0.0.1:47130/ext/guardian.crx on a home PC,
+             where the forcelist entry is ignored. -->
+        <RegistryKey Root="HKLM" Key="SOFTWARE\Policies\Google\Chrome\ExtensionInstallSources">
+          <RegistryValue Name="1" Type="string" Value="http://127.0.0.1:47130/*" />
+        </RegistryKey>
       </Component>
 
       <Component Id="EdgePolicy" Guid="A1B2C3D4-0002-4A5B-8C9D-E0F1A2B3C4D5">
@@ -31,6 +36,9 @@
         </RegistryKey>
         <RegistryKey Root="HKLM" Key="SOFTWARE\Policies\Microsoft\Edge">
           <RegistryValue Name="InPrivateModeAvailability" Type="integer" Value="1" />
+        </RegistryKey>
+        <RegistryKey Root="HKLM" Key="SOFTWARE\Policies\Microsoft\Edge\ExtensionInstallSources">
+          <RegistryValue Name="1" Type="string" Value="http://127.0.0.1:47130/*" />
         </RegistryKey>
       </Component>
 

@@ -98,6 +98,11 @@ jobs:
             Write-Host "::warning::Secret EXTENSION_KEY_PEM is not set. CrxPack will generate a throwaway key; the extension ID will change on every build until the secret is set (paste the contents of a PKCS#8 key.pem created by 'dotnet run --project tools/CrxPack -- extension/build key.pem out.crx')."
           }
 
+      - name: Zip unpacked extension (for "Load unpacked")
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          Compress-Archive -Path extension/build/* -DestinationPath artifacts/guardian-extension-unpacked.zip -Force
+
       - name: Pack CRX
         run: |
           dotnet run --project tools/CrxPack -c Release -- extension/build extension-key.pem artifacts/ext/guardian.crx
@@ -163,8 +168,10 @@ jobs:
           files: |
             artifacts/msi/Guardian-${{ steps.version.outputs.version }}.msi
             artifacts/ext/guardian.crx
+            artifacts/guardian-extension-unpacked.zip
           body: |
             Extension ID: `${{ steps.crx.outputs.id }}`
 
             Install: run the MSI as an administrator on the child's PC, then open http://localhost:47130/setup.
+            Browser extension on a home PC: unzip guardian-extension-unpacked.zip to a permanent folder, then chrome://extensions or edge://extensions → Developer mode → Load unpacked → that folder. Or browse to http://127.0.0.1:47130/ext/guardian.crx and accept the prompt.
             The MSI is self-contained (about 150 MB); no separate .NET install is needed.
