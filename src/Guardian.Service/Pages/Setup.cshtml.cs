@@ -12,8 +12,8 @@ namespace Guardian.Service.Pages;
 /// <summary>The first-run wizard. Loopback only; only until setup is completed. Re-run by deleting the setup_completed setting (the installer does that on "change monitored account").</summary>
 public class SetupModel : PageModel
 {
-    private readonly SettingsRepo _settings; private readonly ISessionControl _session; private readonly GuardianState _state; private readonly SchedulerWorker _sched;
-    public SetupModel(SettingsRepo settings, ISessionControl session, GuardianState state, SchedulerWorker sched) { _settings = settings; _session = session; _state = state; _sched = sched; }
+    private readonly SettingsRepo _settings; private readonly ISessionControl _session; private readonly GuardianState _state; private readonly SchedulerWorker _sched; private readonly ILogger<SetupModel> _log;
+    public SetupModel(SettingsRepo settings, ISessionControl session, GuardianState state, SchedulerWorker sched, ILogger<SetupModel> log) { _settings = settings; _session = session; _state = state; _sched = sched; _log = log; }
 
     public bool Done => _settings.SetupCompleted;
     public string? Error { get; private set; }
@@ -44,6 +44,7 @@ public class SetupModel : PageModel
         _settings.Set(SettingKeys.BackupPath, Blank(backupPath)); _settings.Set(SettingKeys.BackupUser, Blank(backupUser));
         if (!string.IsNullOrEmpty(backupPassword)) _settings.Set(SettingKeys.BackupPassword, Secrets.Protect(backupPassword));
         _settings.Set(SettingKeys.SetupCompleted, "1");
+        _log.LogInformation("Setup completed: monitoring account '{Account}' (admin={Admin}); stored value reads back as '{Stored}'", account, _settings.Get(SettingKeys.MonitoredUserIsAdmin), _settings.MonitoredUser);
         _sched.RunOnce();
         return RedirectToPage();
     }

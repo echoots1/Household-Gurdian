@@ -20,6 +20,7 @@ public sealed class PipeServerWorker : BackgroundService
     private readonly EnforcementRepo _events;
     private readonly IClock _clock;
     private readonly ILogger<PipeServerWorker> _log;
+    private readonly Dictionary<string, bool> _lastReported = new(StringComparer.OrdinalIgnoreCase);
 
     public PipeServerWorker(GuardianState state, SettingsRepo settings, EnforcementRepo events, IClock clock, ILogger<PipeServerWorker> log)
     {
@@ -86,6 +87,11 @@ public sealed class PipeServerWorker : BackgroundService
         var user = req.User ?? req.Sample?.User ?? "";
         // Only the monitored account is recorded or enforced. Anyone else's tray (and every tray before setup) just sees "on".
         var isMonitored = monitored.Length > 0 && string.Equals(user, monitored, StringComparison.OrdinalIgnoreCase);
+        if (_lastReported.TryGetValue(user, out var was) != true || was != isMonitored)
+        {
+            _lastReported[user] = isMonitored;
+            _log.LogInformation("Tray for '{User}' (session {Session}): monitored={Monitored}; configured account is '{Configured}'", user, req.SessionId, isMonitored, monitored.Length == 0 ? "(none: setup not finished)" : monitored);
+        }
         if (!isMonitored)
             return new PipeResponse { Status = new TrayStatus { State = TrayState.On, Tooltip = monitored.Length == 0 ? "Guardian is on (setup not finished)" : "Guardian is on (this account is not monitored)", NoticeAccepted = true, MonitoredUser = monitored } };
         switch (req.Type)
