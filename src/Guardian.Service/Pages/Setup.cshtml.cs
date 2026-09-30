@@ -10,10 +10,11 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace Guardian.Service.Pages;
 
 /// <summary>The first-run wizard. Loopback only; only until setup is completed. Re-run by deleting the setup_completed setting (the installer does that on "change monitored account").</summary>
+[IgnoreAntiforgeryToken] // validated by hand in OnPost so a failure explains itself instead of a bare 400
 public class SetupModel : PageModel
 {
-    private readonly SettingsRepo _settings; private readonly ISessionControl _session; private readonly GuardianState _state; private readonly SchedulerWorker _sched; private readonly ILogger<SetupModel> _log;
-    public SetupModel(SettingsRepo settings, ISessionControl session, GuardianState state, SchedulerWorker sched, ILogger<SetupModel> log) { _settings = settings; _session = session; _state = state; _sched = sched; _log = log; }
+    private readonly SettingsRepo _settings; private readonly ISessionControl _session; private readonly GuardianState _state; private readonly SchedulerWorker _sched; private readonly ILogger<SetupModel> _log; private readonly Microsoft.AspNetCore.Antiforgery.IAntiforgery _antiforgery;
+    public SetupModel(SettingsRepo settings, ISessionControl session, GuardianState state, SchedulerWorker sched, ILogger<SetupModel> log, Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery) { _settings = settings; _session = session; _state = state; _sched = sched; _log = log; _antiforgery = antiforgery; }
 
     public bool Done => _settings.SetupCompleted;
     public string? Error { get; private set; }
@@ -25,11 +26,20 @@ public class SetupModel : PageModel
 
     public void OnGet() => Users = _session.LocalUsers();
 
-    public IActionResult OnPost(string? user, string? userOther, string password, string password2, string? smtpHost, int? smtpPort, string? smtpUser, string? smtpPassword,
+    public async Task<IActionResult> OnPostAsync(string? user, string? userOther, string? password, string? password2, string? smtpHost, int? smtpPort, string? smtpUser, string? smtpPassword,
         string? smtpFrom, string? smtpTo, string? backupPath, string? backupUser, string? backupPassword)
     {
         if (Done) return RedirectToPage();
         Users = _session.LocalUsers();
+        try { await _antiforgery.ValidateRequestAsync(HttpContext); }
+        catch (Microsoft.AspNetCore.Antiforgery.AntiforgeryValidationException ex)
+        {
+            // The page is loopback-only and one-shot; the only realistic way to get here is a stale form (service restarted in between).
+            _log.LogWarning("Setup form rejected (antiforgery): {Reason}. Cookie present: {Cookie}", ex.Message, Request.Cookies.Keys.Any(k => k.Contains("Antiforgery")));
+            Error = "This page had expired (the service may have restarted). Please fill it in once more.";
+            return Page();
+        }
+        password ??= ""; password2 ??= "";
         var account = string.IsNullOrWhiteSpace(userOther) ? user : userOther.Trim();
         if (string.IsNullOrWhiteSpace(account)) { Error = "Pick the account to monitor."; return Page(); }
         if (password != password2) { Error = "The passwords do not match."; return Page(); }

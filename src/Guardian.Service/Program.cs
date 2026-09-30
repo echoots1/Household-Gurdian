@@ -83,7 +83,9 @@ builder.WebHost.ConfigureKestrel(k =>
     k.ListenAnyIP(Ports.Web, l => l.UseHttps(cert));      // https://0.0.0.0:47131 — parent dashboard (and /me over loopback)
 });
 // Cookie/CSRF keys persist in the data folder (DPAPI-protected on Windows) so sessions survive a service restart.
-var dp = builder.Services.AddDataProtection().SetApplicationName(Names.Product).PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(paths.DataDir, "keys")));
+var keysDir = new DirectoryInfo(Path.Combine(paths.DataDir, "keys"));
+keysDir.Create();
+var dp = builder.Services.AddDataProtection().SetApplicationName(Names.Product).PersistKeysToFileSystem(keysDir);
 if (OperatingSystem.IsWindows()) dp.ProtectKeysWithDpapi(protectToLocalMachine: true);
 builder.Services.AddAuthentication(Auth.Scheme).AddCookie(Auth.Configure);
 builder.Services.AddAuthorization(o => o.FallbackPolicy = null);
@@ -119,6 +121,13 @@ var app = builder.Build();
     state.CertFingerprint = Certificates.Fingerprint(cert);
     app.Services.GetRequiredService<PolicyRepo>().Current();
     if (OperatingSystem.IsWindows()) DataFolderAcl.Apply(paths.DataDir, app.Logger);
+    try
+    {
+        var protector = app.Services.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>().CreateProtector("startup-check");
+        var ok = protector.Unprotect(protector.Protect("ok")) == "ok";
+        app.Logger.LogInformation("Data protection keys in {Dir}: {Count} key file(s), round-trip {Ok}", keysDir.FullName, keysDir.GetFiles("*.xml").Length, ok ? "ok" : "FAILED");
+    }
+    catch (Exception ex) { app.Logger.LogError(ex, "Data protection is not working; logins and form submissions will fail"); }
 }
 
 app.UseExceptionHandler("/Error");
