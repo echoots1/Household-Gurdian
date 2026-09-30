@@ -63,6 +63,7 @@ builder.Services.AddSingleton<GuardianState>();
 builder.Services.AddSingleton<Queries>();
 builder.Services.AddSingleton<ListRefresh>();
 builder.Services.AddSingleton<ExtensionHost>();
+builder.Services.AddSingleton<SetupNonces>();
 if (OperatingSystem.IsWindows()) builder.Services.AddSingleton<ISessionControl, WindowsSessionControl>();
 else builder.Services.AddSingleton<ISessionControl, NoopSessionControl>();
 builder.Services.AddHttpClient("lists", c => { c.Timeout = TimeSpan.FromSeconds(60); c.DefaultRequestHeaders.UserAgent.ParseAdd("Guardian/1.0"); });

@@ -21,7 +21,7 @@ public class WebTests : IDisposable
     private static async Task<string> Csrf(HttpClient c, string page)
     {
         var html = await c.GetStringAsync(page);
-        return Regex.Match(html, "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value is { Length: > 0 } v ? v : Regex.Match(html, "name=\"csrf\" content=\"([^\"]+)\"").Groups[1].Value;
+        return Regex.Match(html, "name=\"setupNonce\"[^>]*value=\"([^\"]+)\"").Groups[1].Value is { Length: > 0 } v ? v : Regex.Match(html, "name=\"csrf\" content=\"([^\"]+)\"").Groups[1].Value;
     }
 
     private async Task Setup()
@@ -30,7 +30,7 @@ public class WebTests : IDisposable
         var token = await Csrf(local, "/setup");
         var r = await local.PostAsync("/setup", new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["__RequestVerificationToken"] = token, ["userOther"] = "kid", ["password"] = Password, ["password2"] = Password, ["smtpPort"] = "587",
+            ["setupNonce"] = token, ["userOther"] = "kid", ["password"] = Password, ["password2"] = Password, ["smtpPort"] = "587",
         }));
         Assert.Equal(HttpStatusCode.Redirect, r.StatusCode);
     }
@@ -84,10 +84,10 @@ public class WebTests : IDisposable
     public async Task Stale_setup_form_gets_a_readable_error_not_a_400()
     {
         var local = _f.Local();
-        await local.GetAsync("/setup"); // sets the antiforgery cookie
+        await local.GetAsync("/setup");
         var r = await local.PostAsync("/setup", new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["__RequestVerificationToken"] = "stale-token", ["userOther"] = "kid", ["password"] = Password, ["password2"] = Password,
+            ["setupNonce"] = "stale-token", ["userOther"] = "kid", ["password"] = Password, ["password2"] = Password,
         }));
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
         Assert.Contains("expired", await r.Content.ReadAsStringAsync());
