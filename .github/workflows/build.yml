@@ -99,7 +99,9 @@ jobs:
           }
 
       - name: Zip unpacked extension (for "Load unpacked")
-        run: Compress-Archive -Path extension/build/* -DestinationPath artifacts/guardian-extension-unpacked.zip -Force
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          Compress-Archive -Path extension/build/* -DestinationPath artifacts/guardian-extension-unpacked.zip -Force
 
       - name: Pack CRX
         run: |
