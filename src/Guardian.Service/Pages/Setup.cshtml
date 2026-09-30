@@ -16,7 +16,7 @@
     <p class="muted">Runs once, on this PC, in an administrator session. Nothing needs to reach another machine.</p>
     @if (Model.Error is not null) { <div class="notice warn">@Model.Error</div> }
     <form method="post">
-      <input type="hidden" name="__RequestVerificationToken" value="@Xsrf.GetAndStoreTokens(ViewContext.HttpContext).RequestToken">
+      <input type="hidden" name="setupNonce" value="@Model.Nonce">
       <h3>1. Which account is monitored?</h3>
       @if (Model.Users.Count > 0)
       {
