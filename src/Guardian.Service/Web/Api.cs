@@ -74,7 +74,12 @@ public static class Api
         var mut = app.MapGroup("/api/v1").RequireAuthorization().AddEndpointFilter(async (ctx, next) =>
         {
             var af = ctx.HttpContext.RequestServices.GetRequiredService<IAntiforgery>();
-            try { await af.ValidateRequestAsync(ctx.HttpContext); } catch (AntiforgeryValidationException) { return Results.StatusCode(400); }
+            try { await af.ValidateRequestAsync(ctx.HttpContext); }
+            catch (AntiforgeryValidationException ex)
+            {
+                ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Api").LogWarning("Rejected {Method} {Path}: {Reason}", ctx.HttpContext.Request.Method, ctx.HttpContext.Request.Path, ex.Message);
+                return Results.BadRequest(new { error = "Your session token expired. Reload the page and try again." });
+            }
             return await next(ctx);
         });
 

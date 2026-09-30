@@ -27,7 +27,8 @@ public sealed class FileLoggerProvider : ILoggerProvider
         private readonly FileLoggerProvider _p; private readonly string _cat;
         public FileLogger(FileLoggerProvider p, string cat) { _p = p; _cat = cat; }
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-        public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Information && !_cat.StartsWith("Microsoft.AspNetCore");
+        public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Information &&
+            (!_cat.StartsWith("Microsoft.AspNetCore") || _cat.StartsWith("Microsoft.AspNetCore.Antiforgery") || _cat.StartsWith("Microsoft.AspNetCore.DataProtection") || logLevel >= LogLevel.Warning);
         public void Log<TState>(LogLevel level, EventId id, TState state, Exception? ex, Func<TState, Exception?, string> fmt)
         {
             if (!IsEnabled(level)) return;

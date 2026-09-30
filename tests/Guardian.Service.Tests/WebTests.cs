@@ -81,6 +81,20 @@ public class WebTests : IDisposable
     }
 
     [Fact]
+    public async Task Stale_setup_form_gets_a_readable_error_not_a_400()
+    {
+        var local = _f.Local();
+        await local.GetAsync("/setup"); // sets the antiforgery cookie
+        var r = await local.PostAsync("/setup", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = "stale-token", ["userOther"] = "kid", ["password"] = Password, ["password2"] = Password,
+        }));
+        Assert.Equal(HttpStatusCode.OK, r.StatusCode);
+        Assert.Contains("expired", await r.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.Redirect, (await local.GetAsync("/")).StatusCode); // still not set up
+    }
+
+    [Fact]
     public async Task Lockout_after_five_failures()
     {
         await Setup();
