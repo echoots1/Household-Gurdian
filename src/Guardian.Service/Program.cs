@@ -87,9 +87,13 @@ var keysDir = new DirectoryInfo(Path.Combine(paths.DataDir, "keys"));
 keysDir.Create();
 var dp = builder.Services.AddDataProtection().SetApplicationName(Names.Product).PersistKeysToFileSystem(keysDir);
 if (OperatingSystem.IsWindows()) dp.ProtectKeysWithDpapi(protectToLocalMachine: true);
-builder.Services.AddAuthentication(Auth.Scheme).AddCookie(Auth.Configure);
+// Cookie names carry an id generated with the key ring. A reinstall gets new keys, and a browser that still holds the
+// previous install's cookies for "localhost" would otherwise send them first (a Secure cookie cannot be overwritten by
+// the http setup page), so every login and form submit would fail with "token could not be decrypted".
+var installId = InstallId.LoadOrCreate(keysDir);
+builder.Services.AddAuthentication(Auth.Scheme).AddCookie(o => { Auth.Configure(o); o.Cookie.Name = "guardian.parent." + installId; });
 builder.Services.AddAuthorization(o => o.FallbackPolicy = null);
-builder.Services.AddAntiforgery(o => { o.HeaderName = "RequestVerificationToken"; o.Cookie.SameSite = SameSiteMode.Strict; o.Cookie.HttpOnly = true; });
+builder.Services.AddAntiforgery(o => { o.HeaderName = "RequestVerificationToken"; o.Cookie.Name = "guardian.xsrf." + installId; o.Cookie.SameSite = SameSiteMode.Strict; o.Cookie.HttpOnly = true; });
 builder.Services.AddRazorPages(o =>
 {
     o.Conventions.AuthorizeFolder("/");
